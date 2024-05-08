@@ -1,4 +1,4 @@
-package com.hoseacodes.emailintegrator;
+package com.hoseacodes.emailintegrator.model;
 
 public class Email {
     private String emailAddress;
