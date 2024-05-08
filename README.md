@@ -2,7 +2,7 @@
 
 ## Resources and URI Mappings
 
-- Get email example - GET /email
+- Send email example - POST /email
 - Get app health - GET /actuator/health
 
 ## Build Application
