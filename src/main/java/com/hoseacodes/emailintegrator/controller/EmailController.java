@@ -19,7 +19,7 @@ public class EmailController {
 
 	@PostMapping("/email")
 	@ResponseBody
-	public EmailResponse sendEmail(@RequestBody EmailInput input) {
+	public EmailResponse sendEmail(@RequestBody EmailInput input) throws Exception {
 		return emailService.deliverEmail(input);
 	}
 }

@@ -20,12 +20,22 @@ As part of an invocation to the specific phase: Maven will invoke all the execut
 mvn generate-sources
 ```
 
+Make Maven to copy dependencies into target/lib supposing
+- you don't want to alter the pom.xml
+- you don't want test scoped (e.g. junit.jar) or provided dependencies (e.g. wlfullclient.jar)
+
+```bash
+mvn install dependency:copy-dependencies -DincludeScope=runtime -DoutputDirectory=target/lib
+```
+
 ## Run Application
 
 ```bash
 mvn spring-boot:run
 ```
 
+## API Services
+- [Brevo](https://github.com/sendinblue/APIv3-java-library?tab=readme-ov-file)
 
 ## Tools
 
