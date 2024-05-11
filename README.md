@@ -76,3 +76,15 @@ docker push hoseacodes/hoseacodes-emailintegrator:latest
 - Java 17
 - Maven
 - Spring Boot Starter
+
+## Future Enhancements 
+
+- [ ] [Deploy to Azure](https://spring.io/guides/gs/spring-boot-for-azure)
+- [ ] [Implement Basic Auth](https://medium.com/javarevisited/spring-boot-securing-api-with-basic-authentication-bdd3ad2266f5)
+  - https://www.geeksforgeeks.org/spring-security-basic-authentication/
+- [ ] [Basic Auth RESTTemplate](https://www.baeldung.com/how-to-use-resttemplate-with-basic-authentication-in-spring)
+- [ ] [Add Swagger]()
+- [ ] [Add Junit Tests]()
+- [ ] [Add PIT Tests]()
+- [ ] [Add Karate Tests]()
+- [ ] [Add Test Thresholds]()
