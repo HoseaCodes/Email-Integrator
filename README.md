@@ -45,6 +45,32 @@ Serve vault locally @ http://127.0.0.1:8200/ui/vault/auth?with=token
 vault server -dev
 ```
 
+### Docker
+
+Build Docker Image
+
+```bash
+ docker build -t hoseacodes-emailintegrator .    
+ ```
+
+Run Docker Image
+
+```bash
+docker run -p 8080:8080 hoseacodes-emailintegrator
+```
+
+Tage Docker Image for Push
+
+```bash
+docker tag ${imageID} hoseacodes/hoseacodes-emailintegrator:latest
+```
+
+Push Docker Image 
+
+```bash
+docker push hoseacodes/hoseacodes-emailintegrator:latest        
+```
+
 ## Tools
 
 - Java 17
