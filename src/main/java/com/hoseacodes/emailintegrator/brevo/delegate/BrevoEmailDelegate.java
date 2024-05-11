@@ -1,5 +1,8 @@
 package com.hoseacodes.emailintegrator.brevo.delegate;
 
+import com.hoseacodes.emailintegrator.config.BrevoConfiguration;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import sendinblue.*;
@@ -7,15 +10,17 @@ import sendinblue.auth.*;
 import sibModel.*;
 import sibApi.TransactionalEmailsApi;
 
-import java.io.File;
-import java.util.*;
-
 @Component
 public class BrevoEmailDelegate {
     
+    @Autowired
+    private BrevoConfiguration brevoConfiguration;
+   
     public CreateSmtpEmail callBrevoTranSmtpEmail(SendSmtpEmail input) throws ApiException {
         ApiClient defaultClient = Configuration.getDefaultApiClient();
         ApiKeyAuth apiKey = (ApiKeyAuth) defaultClient.getAuthentication("api-key");
+        String brevoApiKey = brevoConfiguration.getApikey();
+        apiKey.setApiKey(brevoApiKey);
         System.out.println(defaultClient);
         System.out.println(apiKey);
 

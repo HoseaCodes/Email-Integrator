@@ -37,6 +37,14 @@ mvn spring-boot:run
 ## API Services
 - [Brevo](https://github.com/sendinblue/APIv3-java-library?tab=readme-ov-file)
 
+### Vault
+
+Serve vault locally @ http://127.0.0.1:8200/ui/vault/auth?with=token
+
+```bash
+vault server -dev
+```
+
 ## Tools
 
 - Java 17
