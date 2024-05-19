@@ -21,33 +21,9 @@ public class EmailDeliveryService {
     BrevoEmailDelegate brevoEmailDelegate;
 
     public EmailResponse deliverEmail(EmailInput input) throws Exception {
-         System.out.println("result");
-         String emailAddress = input.getCompanySignature() + "@gmail.com";
-         EmailResponse response = null;
-         System.out.println("result2");
-        SendSmtpEmail emailInput = new SendSmtpEmail();
-        emailInput.setSubject("Welcome to Brevo");
-        emailInput.setHtmlContent("Welcome to Brevo, " + input.getCompanySignature() + "!");
-        SendSmtpEmailSender sender = new SendSmtpEmailSender();
-        sender.setEmail("info@ambitiousconcpets.com");
-        sender.setName("Ambitious Concepts");
-        emailInput.setSender(sender);
-        SendSmtpEmailReplyTo replyTo = new SendSmtpEmailReplyTo();
-        replyTo.setEmail("ann6533@example.com");
-        replyTo.setName("Ann");
-        emailInput.setReplyTo(replyTo);
-        emailInput.setTextContent("Welcome to Brevo, " + input.getCompanySignature() + "!");
-        SendSmtpEmailTo to = new SendSmtpEmailTo();
-        to.setEmail("mr.dhosea@gmail.com");
-        List<SendSmtpEmailTo> toList = new ArrayList<>();
-        toList.add(to);
-        emailInput.setTo(toList);
-         System.out.println(emailInput);
-        try {
-            brevoEmailDelegate.callBrevoTranSmtpEmail(emailInput);
-            response = new EmailResponse();
-            response.setGetId(emailAddress);
-            response.setType("email");
+        EmailResponse response = null;
+         try {
+            response = input.getIsBatch() == true ? brevoEmailDelegate.callBatchCreateSmtpEmail(input) :  brevoEmailDelegate.callBrevoTranSmtpEmail(input);
         } catch (Exception e) {
             throw e; 
         }

@@ -17,7 +17,7 @@ public class EmailResponse {
         return id;
     }
 
-    public void setGetId(String id) {
+    public void setId(String id) {
         this.id = id;
     }
 
