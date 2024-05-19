@@ -85,7 +85,7 @@ public class BrevoEmailDelegate {
 
     private SendSmtpEmail convertSmtpInput(EmailInput input) {
         System.out.println("result");
-        String emailAddress = input.getCompanySignature() + "@gmail.com";
+        // String emailAddress = input.getCompanySignature() + "@gmail.com";
         System.out.println("result2");
         SendSmtpEmail emailInput = new SendSmtpEmail();
         emailInput.setSubject("Welcome to Brevo");
