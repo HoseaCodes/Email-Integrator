@@ -5,6 +5,8 @@ import com.hoseacodes.emailintegrator.brevo.model.Batch.EMSBatchResponse;
 import com.hoseacodes.emailintegrator.config.BrevoConfiguration;
 import com.hoseacodes.emailintegrator.model.EmailInput;
 import com.hoseacodes.emailintegrator.model.EmailResponse;
+import com.hoseacodes.emailintegrator.model.SMSInput;
+import com.hoseacodes.emailintegrator.model.SMSReponse;
 
 import java.io.IOError;
 import java.util.ArrayList;
@@ -24,6 +26,7 @@ import sendinblue.*;
 import sendinblue.auth.*;
 import sibModel.*;
 import sibApi.TransactionalEmailsApi;
+import sibApi.TransactionalSmsApi;
 
 @Component
 public class BrevoEmailDelegate {
@@ -46,6 +49,7 @@ public class BrevoEmailDelegate {
             System.out.println(result);
             return res;
         } catch (ApiException e) {
+            System.out.print(e.toString());
             System.err.println("Exception when calling TransactionalEmailsApi#sendTransacEmail");
             e.printStackTrace();
             throw e;
@@ -60,8 +64,10 @@ public class BrevoEmailDelegate {
             headers.set("api-key", brevoConfiguration.getApikey());
             EMSBatchInput batchInput = input.getBatchInput();
             HttpEntity<EMSBatchInput> entity = new HttpEntity<>(batchInput, headers);
-            EMSBatchResponse response = restTemplate.exchange("https://api.brevo.com/v3/smtp/email", HttpMethod.POST, entity,
-                    EMSBatchResponse.class).getBody();
+            EMSBatchResponse response = restTemplate
+                    .exchange("https://api.brevo.com/v3/smtp/email", HttpMethod.POST, entity,
+                            EMSBatchResponse.class)
+                    .getBody();
             return response;
         } catch (HttpStatusCodeException e) {
             try {
@@ -72,15 +78,49 @@ public class BrevoEmailDelegate {
             } catch (IOError err) {
                 throw err;
             }
-        } 
+        }
+    }
+    
+    public SMSReponse callBrevoSMS(SMSInput input) throws ApiException {
+        setBrevoAPIKey();
+        TransactionalSmsApi apiInstance = new TransactionalSmsApi();
+        SendTransacSms smsInput = convertSmSInput(input);
+        try {
+            SendSms result = apiInstance.sendTransacSms(smsInput);
+            System.out.println(result);
+            SMSReponse res = new SMSReponse();
+            res.setId(result.getMessageId().toString());
+            res.setType("sms");
+            return res;
+        } catch (ApiException e) {
+            System.err.println("Exception when calling TransactionalSmsApi#sendTransacSms");
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     private ApiKeyAuth setBrevoAPIKey() {
         ApiClient defaultClient = Configuration.getDefaultApiClient();
         ApiKeyAuth apiKey = (ApiKeyAuth) defaultClient.getAuthentication("api-key");
         String brevoApiKey = brevoConfiguration.getApikey();
-        apiKey.setApiKey(brevoApiKey);
+        System.out.println(brevoApiKey);
+        // apiKey.setApiKey(brevoApiKey);
+        apiKey.setApiKey("m43UaqLw6jGZhRvc");
+        System.out.println(apiKey.getApiKey());
         return apiKey;
+    }
+
+    private SendTransacSms convertSmSInput(SMSInput input) {
+        System.out.println("result");
+        SendTransacSms smsInput = new SendTransacSms();
+        smsInput.setSender("");
+        smsInput.setRecipient("");
+        smsInput.setContent("Welcome to Brevo !");
+        smsInput.setType(null);
+        smsInput.setTag(null);
+        smsInput.setWebUrl(null);
+        System.out.println(smsInput);
+        return smsInput;
     }
 
     private SendSmtpEmail convertSmtpInput(EmailInput input) {

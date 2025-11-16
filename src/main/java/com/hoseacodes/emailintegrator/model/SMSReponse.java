@@ -1,9 +1,8 @@
 package com.hoseacodes.emailintegrator.model;
 
-public class EmailResponse {
+public class SMSReponse {
     private String type;
     private String id;
-
 
     public String getType() {
         return type;
