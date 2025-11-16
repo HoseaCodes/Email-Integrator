@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Your Storm Gate Account Has Been Approved</title>
+</head>
+<body>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2563eb; margin: 0;">{{appName}}</h1>
+            <p style="color: #666; margin: 5px 0;">{{appDisplayName}}</p>
+        </div>
+        
+        <h2 style="color: #22c55e;">Account Approved</h2>
+        <p>Dear {{userName}},</p>
+        <p>Your account at {{appName}} has been approved! You can now sign in to access your dashboard.</p>
+        
+        <div style="margin: 30px 0; text-align: center;">
+            <a href="{{loginUrl}}" 
+               style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                Sign In Now
+            </a>
+        </div>
+        
+        <p>Welcome aboard!</p>
+        
+        <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px; text-align: center; color: #666; font-size: 14px;">
+            <p>{{appName}} - {{appDisplayName}}</p>
+        </div>
+    </div>
+</body>
+</html>
