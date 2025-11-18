@@ -1,4 +1,64 @@
-# Email Integrator
+# 📧 Email Integrator
+
+A Spring Boot microservice for sending templated emails with user approval workflows. Supports multiple email templates including approval requests, account notifications, and registration confirmations.
+
+## 🚀 Production Status
+
+**✅ LIVE & OPERATIONAL** - Deployed on AWS Elastic Beanstalk
+
+**Base URL:** `http://email-integrator-prod.eba-p4bnt2xm.us-east-1.elasticbeanstalk.com`
+
+### 🌐 Production API
+
+#### Send Email
+```bash
+POST /auth/send-email
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "name": "User Name",
+  "templateType": "approval|approved|denied|pending",
+  "appName": "Your App",
+  "appDisplayName": "Your Application Suite",
+  "approvalUrl": "https://yourapp.com/approve",
+  "denyUrl": "https://yourapp.com/deny"
+}
+```
+
+#### Health Check
+```bash
+GET /actuator/health
+```
+
+## 📧 Email Templates
+
+- **`approval`** - Send approval request to admin with approve/deny buttons
+- **`approved`** - Notify user their account was approved
+- **`denied`** - Notify user their account was denied  
+- **`pending`** - Confirm registration is pending admin review
+
+## 🚀 Quick Deployment
+
+### One-Command Deploy to AWS
+```bash
+./eb-deploy.sh
+```
+
+## 📚 Documentation
+
+- **[🚀 Deployment Guide](DEPLOYMENT.md)** - Quick deployment instructions
+- **[🧪 API Examples](API_TESTING_EXAMPLES.md)** - Complete API testing examples
+- **[📧 Email Templates](EMAIL_TEMPLATES.md)** - Email template documentation
+- **[📮 Gmail Setup](GMAIL_SETUP.md)** - Gmail configuration guide
+
+## 🔧 Configuration
+
+Required environment variables:
+- `MAIL_PASSWORD` - Gmail app password
+- `JWT_SECRET` - 256-bit secret key for JWT tokens
+
+---
 
 ## Resources and URI Mappings
 
@@ -71,11 +131,32 @@ Push Docker Image
 docker push hoseacodes/hoseacodes-emailintegrator:latest        
 ```
 
-## Tools
+## 🛠️ Tech Stack & Tools
 
+### Core Technologies
+- **Java 17** - Runtime environment
+- **Spring Boot 3.2.5** - Application framework
+- **Spring Mail** - Email sending capabilities
+- **JWT** - Token-based authentication
+- **Thymeleaf** - HTML email templating
+- **Maven** - Build and dependency management
+- **Docker** - Containerization
+- **AWS Elastic Beanstalk** - Cloud deployment
+
+### Original Tools
 - Java 17
 - Maven
 - Spring Boot Starter
+
+## ✅ Current Features
+
+- ✅ **Production Ready** - Deployed on AWS Elastic Beanstalk
+- ✅ **Multiple Email Templates** - Approval, notification, and confirmation emails
+- ✅ **JWT Integration** - Secure token-based approval links
+- ✅ **Gmail Integration** - SMTP email sending via Gmail
+- ✅ **Docker Support** - Containerized deployment
+- ✅ **Health Monitoring** - Built-in health check endpoints
+- ✅ **Error Handling** - Comprehensive error handling and logging
 
 ## Future Enhancements 
 
@@ -95,4 +176,19 @@ docker push hoseacodes/hoseacodes-emailintegrator:latest
   - [ ] Add Snyk scans
   - [ ] Add linter job
   - [ ] Test job
-  - [ ] Secret scan 
+  - [ ] Secret scan
+
+---
+
+## 🎯 Project Status
+
+**✅ PRODUCTION READY** - The Email Integrator is fully deployed and operational on AWS Elastic Beanstalk!
+
+- **Live URL:** `http://email-integrator-prod.eba-p4bnt2xm.us-east-1.elasticbeanstalk.com`
+- **Status:** All email templates working ✅
+- **Gmail Integration:** Configured and functional ✅  
+- **JWT Authentication:** Implemented and secure ✅
+- **Error Handling:** Comprehensive null-safe implementation ✅
+- **Documentation:** Complete with examples and guides ✅
+
+**Ready for production use!** 🚀 
