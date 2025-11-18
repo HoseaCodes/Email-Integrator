@@ -5,13 +5,12 @@
 # Description: Complete programmatic deployment pipeline for Spring Boot apps to AWS EB
 
 set -euo pipefail  # Exit on error, undefined vars, pipe failures
-
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
 
 # Default configuration - override with environment variables
-APP_NAME="${APP_NAME:-springboot-app}"
+APP_NAME="${APP_NAME:-email-integrator}"
 ENV_NAME="${ENV_NAME:-${APP_NAME}-prod}"
 REGION="${AWS_REGION:-us-east-1}"
 PLATFORM="${PLATFORM:-java-17-amazon-linux}"

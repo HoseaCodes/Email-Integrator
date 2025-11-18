@@ -102,6 +102,13 @@ mvn clean install
 ls -la target/*.jar
 ```
 
+### Step 2.5: Verify your environment variables are set:
+
+MAIL_PASSWORD (Gmail app password)
+
+JWT_SECRET (32+ character secret)
+
+
 ### Step 3: Deploy to AWS Elastic Beanstalk
 ```bash
 # Make the deployment script executable
