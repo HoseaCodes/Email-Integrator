@@ -2,6 +2,7 @@ package com.hoseacodes.emailintegrator.service;
 
 import com.hoseacodes.emailintegrator.config.EmailProperties;
 import com.hoseacodes.emailintegrator.model.UserData;
+import com.hoseacodes.emailintegrator.model.ConsultationData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.util.StringUtils;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -268,5 +270,116 @@ public class UserApprovalEmailService {
         return StringUtils.hasText(userData.getLoginUrl()) 
             ? userData.getLoginUrl() 
             : baseUrl + "/login";
+    }
+    
+    /**
+     * Send consultation confirmation email to user
+     */
+    public boolean sendConsultationConfirmationEmail(ConsultationData consultationData) {
+        try {
+            if (!emailProperties.isEnabled()) {
+                logger.warn("Email service is disabled");
+                return false;
+            }
+            
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            
+            helper.setFrom(getFromAddress(), "Ambitious Concepts");
+            helper.setTo(consultationData.getEmail());
+            helper.setSubject("Engineering Consultation Confirmed - Ambitious Concepts Applied Systems Lab");
+            
+            String htmlContent = buildConsultationConfirmationTemplate(consultationData);
+            helper.setText("", htmlContent);
+            
+            // Add calendar attachment
+            String calendarContent = consultationData.generateCalendarEvent();
+            if (!calendarContent.isEmpty()) {
+                helper.addAttachment("consultation.ics", 
+                    new org.springframework.core.io.ByteArrayResource(calendarContent.getBytes()), 
+                    "text/calendar");
+            }
+            
+            mailSender.send(mimeMessage);
+            logger.info("Consultation confirmation email sent to: {}", consultationData.getEmail());
+            
+            return true;
+            
+        } catch (MailException | MessagingException | UnsupportedEncodingException e) {
+            logger.error("Error sending consultation confirmation email to {}: {}", 
+                consultationData.getEmail(), e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Send consultation notification email to admin
+     */
+    public boolean sendConsultationNotificationEmail(ConsultationData consultationData) {
+        try {
+            if (!emailProperties.isEnabled()) {
+                logger.warn("Email service is disabled");
+                return false;
+            }
+            
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            
+            helper.setFrom(getFromAddress(), "Ambitious Concepts System");
+            helper.setTo("info@ambitiousconcept.com");
+            helper.setSubject("New Engineering Consultation Scheduled - " + consultationData.getCompany());
+            
+            String htmlContent = buildConsultationNotificationTemplate(consultationData);
+            helper.setText("", htmlContent);
+            
+            mailSender.send(mimeMessage);
+            logger.info("Consultation notification email sent to admin for: {}", consultationData.getEmail());
+            
+            return true;
+            
+        } catch (MailException | MessagingException | UnsupportedEncodingException e) {
+            logger.error("Error sending consultation notification email for {}: {}", 
+                consultationData.getEmail(), e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Build HTML template for consultation confirmation email to user
+     */
+    private String buildConsultationConfirmationTemplate(ConsultationData consultationData) {
+        Map<String, String> variables = Map.of(
+            "firstName", consultationData.getFirstName() != null ? consultationData.getFirstName() : "",
+            "lastName", consultationData.getLastName() != null ? consultationData.getLastName() : "",
+            "fullName", consultationData.getFullName(),
+            "company", consultationData.getCompany() != null ? consultationData.getCompany() : "",
+            "consultationType", consultationData.getConsultationType() != null ? consultationData.getConsultationType() : "",
+            "formattedDate", consultationData.getFormattedDate(),
+            "formattedTime", consultationData.getFormattedTime(),
+            "meetingLink", consultationData.getMeetingLink() != null ? consultationData.getMeetingLink() : "",
+            "notes", consultationData.getNotes() != null ? consultationData.getNotes() : ""
+        );
+        
+        return emailTemplateService.processTemplate("consultation-confirmation.html", variables);
+    }
+    
+    /**
+     * Build HTML template for consultation notification email to admin
+     */
+    private String buildConsultationNotificationTemplate(ConsultationData consultationData) {
+        Map<String, String> variables = new HashMap<>();
+        variables.put("firstName", consultationData.getFirstName() != null ? consultationData.getFirstName() : "");
+        variables.put("lastName", consultationData.getLastName() != null ? consultationData.getLastName() : "");
+        variables.put("fullName", consultationData.getFullName());
+        variables.put("email", consultationData.getEmail() != null ? consultationData.getEmail() : "");
+        variables.put("company", consultationData.getCompany() != null ? consultationData.getCompany() : "");
+        variables.put("consultationType", consultationData.getConsultationType() != null ? consultationData.getConsultationType() : "");
+        variables.put("formattedDate", consultationData.getFormattedDate());
+        variables.put("formattedTime", consultationData.getFormattedTime());
+        variables.put("meetingLink", consultationData.getMeetingLink() != null ? consultationData.getMeetingLink() : "");
+        variables.put("phone", consultationData.getPhone() != null ? consultationData.getPhone() : "");
+        variables.put("notes", consultationData.getNotes() != null ? consultationData.getNotes() : "");
+        
+        return emailTemplateService.processTemplate("consultation-notification.html", variables);
     }
 }

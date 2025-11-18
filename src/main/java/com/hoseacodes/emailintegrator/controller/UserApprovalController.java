@@ -1,6 +1,7 @@
 package com.hoseacodes.emailintegrator.controller;
 
 import com.hoseacodes.emailintegrator.model.UserData;
+import com.hoseacodes.emailintegrator.model.ConsultationData;
 import com.hoseacodes.emailintegrator.service.ApprovalTokenService;
 import com.hoseacodes.emailintegrator.service.UserApprovalEmailService;
 import org.slf4j.Logger;
@@ -204,57 +205,35 @@ public class UserApprovalController {
      * POST /auth/send-email
      */
     @PostMapping("/send-email")
-    public ResponseEntity<Map<String, Object>> sendEmail(@RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, Object>> sendEmail(@RequestBody Map<String, Object> request) {
         try {
-            String email = request.get("email");
-            String name = request.get("name");
-            String templateType = request.get("templateType");
-            String appName = request.get("appName");
-            String appDisplayName = request.get("appDisplayName");
-            String approvalUrl = request.get("approvalUrl");
-            String denyUrl = request.get("denyUrl");
-            String loginUrl = request.get("loginUrl");
+            String templateType = (String) request.get("templateType");
             
-            if (email == null || name == null || templateType == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Email, name, and templateType are required"));
+            if (templateType == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "templateType is required"));
             }
             
-            logger.info("Sending {} email to: {}", templateType, email);
-            UserData userData = new UserData(email, name, appName, appDisplayName, approvalUrl, denyUrl, loginUrl);
+            logger.info("Sending {} email", templateType);
             
-            boolean emailSent = false;
-            String message = "";
+            EmailResult result = switch (templateType.toLowerCase()) {
+                case "approval", "approved", "denied", "pending" -> 
+                    handleUserApprovalEmail(templateType, request);
+                case "consultation-confirmation", "consultation-notification" -> 
+                    handleConsultationEmail(templateType, request);
+                default -> new EmailResult(false, "Invalid templateType", "", 
+                    "Valid types: approval, approved, denied, pending, consultation-confirmation, consultation-notification");
+            };
             
-            switch (templateType.toLowerCase()) {
-                case "approval":
-                    emailSent = userApprovalEmailService.sendApprovalEmail(userData);
-                    message = "Approval request email sent to admin";
-                    break;
-                case "approved":
-                    emailSent = userApprovalEmailService.sendAccountApprovedEmail(userData);
-                    message = "Account approved email sent to user";
-                    break;
-                case "denied":
-                    emailSent = userApprovalEmailService.sendAccountDeniedEmail(userData);
-                    message = "Account denied email sent to user";
-                    break;
-                case "pending":
-                    emailSent = userApprovalEmailService.sendRegistrationPendingEmail(userData);
-                    message = "Registration pending email sent to user";
-                    break;
-                default:
-                    return ResponseEntity.badRequest().body(Map.of(
-                        "error", "Invalid templateType",
-                        "message", "Valid types: approval, approved, denied, pending"
-                    ));
+            if (result.hasError()) {
+                return ResponseEntity.badRequest().body(Map.of("error", result.errorMessage()));
             }
             
-            if (emailSent) {
+            if (result.success()) {
                 return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "message", message,
+                    "message", result.message(),
                     "templateType", templateType,
-                    "recipient", email
+                    "recipient", result.recipient()
                 ));
             } else {
                 return ResponseEntity.badRequest().body(Map.of(
@@ -269,6 +248,99 @@ public class UserApprovalController {
             String errorMessage = e.getMessage() != null ? e.getMessage() : "Unknown error occurred";
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Internal server error", "details", errorMessage));
+        }
+    }
+    
+    /**
+     * Handle user approval emails (approval, approved, denied, pending)
+     */
+    private EmailResult handleUserApprovalEmail(String templateType, Map<String, Object> request) {
+        String email = (String) request.get("email");
+        String name = (String) request.get("name");
+        
+        if (email == null || name == null) {
+            return EmailResult.error("Email and name are required");
+        }
+        
+        String appName = (String) request.get("appName");
+        String appDisplayName = (String) request.get("appDisplayName");
+        String approvalUrl = (String) request.get("approvalUrl");
+        String denyUrl = (String) request.get("denyUrl");
+        String loginUrl = (String) request.get("loginUrl");
+        
+        UserData userData = new UserData(email, name, appName, appDisplayName, approvalUrl, denyUrl, loginUrl);
+        
+        return switch (templateType.toLowerCase()) {
+            case "approval" -> {
+                boolean sent = userApprovalEmailService.sendApprovalEmail(userData);
+                yield new EmailResult(sent, "Approval request email sent to admin", email, null);
+            }
+            case "approved" -> {
+                boolean sent = userApprovalEmailService.sendAccountApprovedEmail(userData);
+                yield new EmailResult(sent, "Account approved email sent to user", email, null);
+            }
+            case "denied" -> {
+                boolean sent = userApprovalEmailService.sendAccountDeniedEmail(userData);
+                yield new EmailResult(sent, "Account denied email sent to user", email, null);
+            }
+            case "pending" -> {
+                boolean sent = userApprovalEmailService.sendRegistrationPendingEmail(userData);
+                yield new EmailResult(sent, "Registration pending email sent to user", email, null);
+            }
+            default -> EmailResult.error("Invalid approval template type");
+        };
+    }
+    
+    /**
+     * Handle consultation emails (consultation-confirmation, consultation-notification)
+     */
+    private EmailResult handleConsultationEmail(String templateType, Map<String, Object> request) {
+        String firstName = (String) request.get("firstName");
+        String lastName = (String) request.get("lastName");
+        String email = (String) request.get("email");
+        String company = (String) request.get("company");
+        String consultationType = (String) request.get("consultationType");
+        String date = (String) request.get("date");
+        String timeSlot = (String) request.get("timeSlot");
+        String meetingLink = (String) request.get("meetingLink");
+        
+        if (firstName == null || lastName == null || email == null || 
+            company == null || consultationType == null || date == null || 
+            timeSlot == null || meetingLink == null) {
+            return EmailResult.error("firstName, lastName, email, company, consultationType, date, timeSlot, and meetingLink are required for consultation emails");
+        }
+        
+        String phone = (String) request.get("phone");
+        String notes = (String) request.get("notes");
+        
+        ConsultationData consultationData = new ConsultationData(
+            firstName, lastName, email, company, consultationType, 
+            date, timeSlot, meetingLink, phone, notes
+        );
+        
+        return switch (templateType.toLowerCase()) {
+            case "consultation-confirmation" -> {
+                boolean sent = userApprovalEmailService.sendConsultationConfirmationEmail(consultationData);
+                yield new EmailResult(sent, "Consultation confirmation email sent to user", email, null);
+            }
+            case "consultation-notification" -> {
+                boolean sent = userApprovalEmailService.sendConsultationNotificationEmail(consultationData);
+                yield new EmailResult(sent, "Consultation notification email sent to admin", "info@ambitiousconcept.com", null);
+            }
+            default -> EmailResult.error("Invalid consultation template type");
+        };
+    }
+    
+    /**
+     * Result record for email operations
+     */
+    private record EmailResult(boolean success, String message, String recipient, String errorMessage) {
+        static EmailResult error(String errorMessage) {
+            return new EmailResult(false, "", "", errorMessage);
+        }
+        
+        boolean hasError() {
+            return errorMessage != null && !errorMessage.isEmpty();
         }
     }
     

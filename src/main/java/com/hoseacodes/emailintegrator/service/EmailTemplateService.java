@@ -66,6 +66,8 @@ public class EmailTemplateService {
             case "account-approved.html" -> getDefaultApprovedTemplate();
             case "account-denied.html" -> getDefaultDeniedTemplate();
             case "registration-pending.html" -> getDefaultPendingTemplate();
+            case "consultation-confirmation.html" -> getDefaultConsultationConfirmationTemplate();
+            case "consultation-notification.html" -> getDefaultConsultationNotificationTemplate();
             default -> "<html><body><h1>Email Template Error</h1><p>Template not found: " + templateName + "</p></body></html>";
         };
     }
@@ -107,6 +109,38 @@ public class EmailTemplateService {
             <h1>Registration Received</h1>
             <p>Dear {{userName}}, your registration is pending approval.</p>
             <p>Contact: {{adminEmail}}</p>
+            </body></html>
+            """;
+    }
+    
+    private String getDefaultConsultationConfirmationTemplate() {
+        return """
+            <html><body>
+            <h1>Consultation Confirmed</h1>
+            <p>Dear {{firstName}} {{lastName}},</p>
+            <p>Your consultation with {{company}} has been confirmed.</p>
+            <p>Date: {{formattedDate}}</p>
+            <p>Time: {{formattedTime}}</p>
+            <p>Type: {{consultationType}}</p>
+            <p><a href="{{meetingLink}}">Join Meeting</a></p>
+            <p>Notes: {{notes}}</p>
+            </body></html>
+            """;
+    }
+    
+    private String getDefaultConsultationNotificationTemplate() {
+        return """
+            <html><body>
+            <h1>New Consultation Scheduled</h1>
+            <p>Client: {{firstName}} {{lastName}}</p>
+            <p>Email: {{email}}</p>
+            <p>Company: {{company}}</p>
+            <p>Phone: {{phone}}</p>
+            <p>Date: {{formattedDate}}</p>
+            <p>Time: {{formattedTime}}</p>
+            <p>Type: {{consultationType}}</p>
+            <p><a href="{{meetingLink}}">Join Meeting</a></p>
+            <p>Notes: {{notes}}</p>
             </body></html>
             """;
     }

@@ -46,3 +46,5 @@ TailLogs-*.txt
 
 ### AWS Logs ###
 *.log
+
+production-secrets-backup.txt
