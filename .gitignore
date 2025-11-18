@@ -37,3 +37,12 @@ build/
 .env.local
 .env.production
 .env.staging
+
+### Deployment Artifacts ###
+eb-deploy-manual/
+eb-deploy-v*.zip
+eb-options.json
+TailLogs-*.txt
+
+### AWS Logs ###
+*.log

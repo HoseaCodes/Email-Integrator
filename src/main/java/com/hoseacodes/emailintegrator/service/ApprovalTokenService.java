@@ -60,11 +60,11 @@ public class ApprovalTokenService {
         Date expiryDate = new Date(now.getTime() + jwtExpiration);
         
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(subject)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .claims(claims)
+                .subject(subject)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
                 .compact();
     }
     
@@ -73,11 +73,11 @@ public class ApprovalTokenService {
      */
     public String verifyApprovalToken(String token) {
         try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+                    .parseSignedClaims(token)
+                    .getPayload();
             
             String tokenType = claims.get("type", String.class);
             if (!"approval".equals(tokenType)) {
@@ -98,11 +98,11 @@ public class ApprovalTokenService {
      */
     public Map<String, Object> verifyApprovalTokenWithClaims(String token) {
         try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+                    .parseSignedClaims(token)
+                    .getPayload();
             
             String tokenType = claims.get("type", String.class);
             if (!"approval".equals(tokenType)) {
@@ -130,11 +130,11 @@ public class ApprovalTokenService {
      */
     public boolean isTokenExpired(String token) {
         try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+                    .parseSignedClaims(token)
+                    .getPayload();
             
             return claims.getExpiration().before(new Date());
         } catch (Exception e) {

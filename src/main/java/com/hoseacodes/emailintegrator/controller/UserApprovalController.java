@@ -266,8 +266,9 @@ public class UserApprovalController {
             
         } catch (Exception e) {
             logger.error("Error sending email:", e);
+            String errorMessage = e.getMessage() != null ? e.getMessage() : "Unknown error occurred";
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Internal server error", "details", e.getMessage()));
+                .body(Map.of("error", "Internal server error", "details", errorMessage));
         }
     }
     

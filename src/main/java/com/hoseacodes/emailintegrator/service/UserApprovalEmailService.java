@@ -181,13 +181,13 @@ public class UserApprovalEmailService {
      */
     private String buildApprovalEmailTemplate(UserData userData, String approvalToken, String approvalUrl, String denyUrl) {
         Map<String, String> variables = Map.of(
-            "userName", userData.getName(),
-            "userEmail", userData.getEmail(),
-            "approvalToken", approvalToken,
-            "approvalUrl", approvalUrl,
-            "denyUrl", denyUrl,
-            "appName", getAppName(userData),
-            "appDisplayName", getAppDisplayName(userData)
+            "userName", userData.getName() != null ? userData.getName() : "User",
+            "userEmail", userData.getEmail() != null ? userData.getEmail() : "",
+            "approvalToken", approvalToken != null ? approvalToken : "",
+            "approvalUrl", approvalUrl != null ? approvalUrl : "",
+            "denyUrl", denyUrl != null ? denyUrl : "",
+            "appName", getAppName(userData) != null ? getAppName(userData) : "Application",
+            "appDisplayName", getAppDisplayName(userData) != null ? getAppDisplayName(userData) : "User Management System"
         );
         
         return emailTemplateService.processTemplate("approval-email.html", variables);
@@ -200,10 +200,10 @@ public class UserApprovalEmailService {
         String loginUrl = getLoginUrl(userData);
         
         Map<String, String> variables = Map.of(
-            "userName", userData.getName(),
-            "loginUrl", loginUrl,
-            "appName", getAppName(userData),
-            "appDisplayName", getAppDisplayName(userData)
+            "userName", userData.getName() != null ? userData.getName() : "User",
+            "loginUrl", loginUrl != null ? loginUrl : "",
+            "appName", getAppName(userData) != null ? getAppName(userData) : "Application",
+            "appDisplayName", getAppDisplayName(userData) != null ? getAppDisplayName(userData) : "User Management System"
         );
         
         return emailTemplateService.processTemplate("account-approved.html", variables);
@@ -214,10 +214,10 @@ public class UserApprovalEmailService {
      */
     private String buildAccountDeniedTemplate(UserData userData) {
         Map<String, String> variables = Map.of(
-            "userName", userData.getName(),
-            "adminEmail", adminEmail,
-            "appName", getAppName(userData),
-            "appDisplayName", getAppDisplayName(userData)
+            "userName", userData.getName() != null ? userData.getName() : "User",
+            "adminEmail", adminEmail != null ? adminEmail : "",
+            "appName", getAppName(userData) != null ? getAppName(userData) : "Application",
+            "appDisplayName", getAppDisplayName(userData) != null ? getAppDisplayName(userData) : "User Management System"
         );
         
         return emailTemplateService.processTemplate("account-denied.html", variables);
@@ -228,10 +228,10 @@ public class UserApprovalEmailService {
      */
     private String buildRegistrationPendingTemplate(UserData userData) {
         Map<String, String> variables = Map.of(
-            "userName", userData.getName(),
-            "adminEmail", adminEmail,
-            "appName", getAppName(userData),
-            "appDisplayName", getAppDisplayName(userData)
+            "userName", userData.getName() != null ? userData.getName() : "User",
+            "adminEmail", adminEmail != null ? adminEmail : "",
+            "appName", getAppName(userData) != null ? getAppName(userData) : "Application",
+            "appDisplayName", getAppDisplayName(userData) != null ? getAppDisplayName(userData) : "User Management System"
         );
         
         return emailTemplateService.processTemplate("registration-pending.html", variables);
