@@ -41,6 +41,16 @@ All HTML email templates are now stored in `src/main/resources/templates/` direc
 - `{{appName}}` - Application name (configurable)
 - `{{appDisplayName}}` - Application display name (configurable)
 
+### 5. `password-reset.html`
+**Purpose:** Sent to user when they request a password reset  
+**Variables:**
+- `{{userName}}` - Name of the user
+- `{{resetUrl}}` - URL to reset the password (required)
+- `{{expiryTime}}` - Time until reset link expires (defaults to "24 hours")
+- `{{adminEmail}}` - Admin contact email for support
+- `{{appName}}` - Application name (configurable)
+- `{{appDisplayName}}` - Application display name (configurable)
+
 ## Template Service
 
 The `EmailTemplateService` handles:
@@ -70,6 +80,26 @@ private UserApprovalEmailService emailService;
 // Send approval email
 UserData userData = new UserData("user@example.com", "John Doe");
 boolean sent = emailService.sendApprovalEmail(userData);
+
+// Send password reset email
+UserData resetUserData = new UserData("user@example.com", "John Doe");
+resetUserData.setResetUrl("https://yourapp.com/reset?token=xyz");
+resetUserData.setExpiryTime("24 hours");
+boolean resetSent = emailService.sendPasswordResetEmail(resetUserData);
+```
+
+### API Usage Example (POST /auth/send-email)
+
+```json
+{
+  "templateType": "password-reset",
+  "email": "user@example.com",
+  "name": "John Doe",
+  "resetUrl": "https://yourapp.com/reset?token=xyz",
+  "expiryTime": "24 hours",
+  "appName": "Your App",
+  "appDisplayName": "Your Application"
+}
 ```
 
 ## Customizing Templates
@@ -100,5 +130,8 @@ src/main/resources/templates/
 ├── approval-email.html
 ├── account-approved.html
 ├── account-denied.html
-└── registration-pending.html
+├── registration-pending.html
+├── password-reset.html
+├── consultation-confirmation.html
+└── consultation-notification.html
 ```

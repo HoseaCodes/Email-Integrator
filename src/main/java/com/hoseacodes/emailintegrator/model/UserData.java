@@ -8,6 +8,8 @@ public class UserData {
     private String approvalUrl;
     private String denyUrl;
     private String loginUrl;
+    private String resetUrl;
+    private String expiryTime;
     
     public UserData() {
     }
@@ -97,5 +99,21 @@ public class UserData {
     
     public void setLoginUrl(String loginUrl) {
         this.loginUrl = loginUrl;
+    }
+    
+    public String getResetUrl() {
+        return resetUrl;
+    }
+    
+    public void setResetUrl(String resetUrl) {
+        this.resetUrl = resetUrl;
+    }
+    
+    public String getExpiryTime() {
+        return expiryTime;
+    }
+    
+    public void setExpiryTime(String expiryTime) {
+        this.expiryTime = expiryTime;
     }
 }

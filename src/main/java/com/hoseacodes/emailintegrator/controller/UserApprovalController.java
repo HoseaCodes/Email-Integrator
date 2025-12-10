@@ -220,8 +220,10 @@ public class UserApprovalController {
                     handleUserApprovalEmail(templateType, request);
                 case "consultation-confirmation", "consultation-notification" -> 
                     handleConsultationEmail(templateType, request);
+                case "password-reset" -> 
+                    handlePasswordResetEmail(request);
                 default -> new EmailResult(false, "Invalid templateType", "", 
-                    "Valid types: approval, approved, denied, pending, consultation-confirmation, consultation-notification");
+                    "Valid types: approval, approved, denied, pending, consultation-confirmation, consultation-notification, password-reset");
             };
             
             if (result.hasError()) {
@@ -329,6 +331,32 @@ public class UserApprovalController {
             }
             default -> EmailResult.error("Invalid consultation template type");
         };
+    }
+    
+    /**
+     * Handle password reset email
+     */
+    private EmailResult handlePasswordResetEmail(Map<String, Object> request) {
+        String email = (String) request.get("email");
+        String name = (String) request.get("name");
+        String resetUrl = (String) request.get("resetUrl");
+        
+        if (email == null || resetUrl == null) {
+            return EmailResult.error("email and resetUrl are required for password reset emails");
+        }
+        
+        String appName = (String) request.get("appName");
+        String appDisplayName = (String) request.get("appDisplayName");
+        String expiryTime = (String) request.get("expiryTime");
+        
+        UserData userData = new UserData(email, name != null ? name : "User");
+        userData.setAppName(appName);
+        userData.setAppDisplayName(appDisplayName);
+        userData.setResetUrl(resetUrl);
+        userData.setExpiryTime(expiryTime != null ? expiryTime : "24 hours");
+        
+        boolean sent = userApprovalEmailService.sendPasswordResetEmail(userData);
+        return new EmailResult(sent, "Password reset email sent to user", email, null);
     }
     
     /**

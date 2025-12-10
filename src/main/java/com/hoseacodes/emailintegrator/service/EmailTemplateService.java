@@ -68,6 +68,7 @@ public class EmailTemplateService {
             case "registration-pending.html" -> getDefaultPendingTemplate();
             case "consultation-confirmation.html" -> getDefaultConsultationConfirmationTemplate();
             case "consultation-notification.html" -> getDefaultConsultationNotificationTemplate();
+            case "password-reset.html" -> getDefaultPasswordResetTemplate();
             default -> "<html><body><h1>Email Template Error</h1><p>Template not found: " + templateName + "</p></body></html>";
         };
     }
@@ -141,6 +142,20 @@ public class EmailTemplateService {
             <p>Type: {{consultationType}}</p>
             <p><a href="{{meetingLink}}">Join Meeting</a></p>
             <p>Notes: {{notes}}</p>
+            </body></html>
+            """;
+    }
+    
+    private String getDefaultPasswordResetTemplate() {
+        return """
+            <html><body>
+            <h1>Password Reset Request</h1>
+            <p>Dear {{userName}},</p>
+            <p>We received a request to reset your password.</p>
+            <p><a href="{{resetUrl}}">Reset Password</a></p>
+            <p>This link will expire in {{expiryTime}}.</p>
+            <p>If you did not request this, please ignore this email.</p>
+            <p>Contact: {{adminEmail}}</p>
             </body></html>
             """;
     }

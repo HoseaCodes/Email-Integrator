@@ -179,6 +179,37 @@ public class UserApprovalEmailService {
     }
     
     /**
+     * Send password reset email to user
+     */
+    public boolean sendPasswordResetEmail(UserData userData) {
+        try {
+            if (!emailProperties.isEnabled()) {
+                logger.warn("Email service is disabled");
+                return false;
+            }
+            
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            
+            helper.setFrom(getFromAddress(), getAppName(userData) + " Security");
+            helper.setTo(userData.getEmail());
+            helper.setSubject("Password Reset Request - " + getAppName(userData));
+            
+            String htmlContent = buildPasswordResetTemplate(userData);
+            helper.setText("", htmlContent);
+            
+            mailSender.send(mimeMessage);
+            logger.info("Password reset email sent to: {}", userData.getEmail());
+            
+            return true;
+            
+        } catch (MailException | MessagingException | UnsupportedEncodingException e) {
+            logger.error("Error sending password reset email to {}: {}", userData.getEmail(), e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
      * Build HTML template for approval email to admin
      */
     private String buildApprovalEmailTemplate(UserData userData, String approvalToken, String approvalUrl, String denyUrl) {
@@ -237,6 +268,25 @@ public class UserApprovalEmailService {
         );
         
         return emailTemplateService.processTemplate("registration-pending.html", variables);
+    }
+    
+    /**
+     * Build HTML template for password reset email
+     */
+    private String buildPasswordResetTemplate(UserData userData) {
+        String resetUrl = userData.getResetUrl() != null ? userData.getResetUrl() : "";
+        String expiryTime = userData.getExpiryTime() != null ? userData.getExpiryTime() : "24 hours";
+        
+        Map<String, String> variables = Map.of(
+            "userName", userData.getName() != null ? userData.getName() : "User",
+            "resetUrl", resetUrl,
+            "expiryTime", expiryTime,
+            "adminEmail", adminEmail != null ? adminEmail : "",
+            "appName", getAppName(userData) != null ? getAppName(userData) : "Application",
+            "appDisplayName", getAppDisplayName(userData) != null ? getAppDisplayName(userData) : "User Management System"
+        );
+        
+        return emailTemplateService.processTemplate("password-reset.html", variables);
     }
     
     private String getFromAddress() {
