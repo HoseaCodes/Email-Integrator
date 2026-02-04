@@ -6,7 +6,10 @@ A Spring Boot microservice for sending templated emails with user approval workf
 
 **✅ LIVE & OPERATIONAL** - Deployed on AWS Elastic Beanstalk
 
-**Base URL:** `http://email-integrator-prod.eba-p4bnt2xm.us-east-1.elasticbeanstalk.com`
+| Base URL (Production) | Value |
+|-----------------------|--------------------------------------------------------------------------|
+| Elastic Beanstalk     | `http://email-integrator-prod.eba-p4bnt2xm.us-east-1.elasticbeanstalk.com` |
+| Production Domain     | http://api.email.hoseacodes.com/                                         |
 
 ### 🌐 Production API
 
@@ -160,6 +163,7 @@ docker push hoseacodes/hoseacodes-emailintegrator:latest
 
 ## Future Enhancements 
 
+- [ ] [SSL Cert](./src/main/resources/docs/SSL.md)
 - [ ] [Deploy to Azure](https://spring.io/guides/gs/spring-boot-for-azure)
 - [ ] [Implement Basic Auth](https://medium.com/javarevisited/spring-boot-securing-api-with-basic-authentication-bdd3ad2266f5)
   - [Another Basic Auth Method](https://www.geeksforgeeks.org/spring-security-basic-authentication/)
