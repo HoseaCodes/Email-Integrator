@@ -50,10 +50,16 @@ GET /actuator/health
 
 ## 📚 Documentation
 
-- **[🚀 Deployment Guide](DEPLOYMENT.md)** - Quick deployment instructions
-- **[🧪 API Examples](API_TESTING_EXAMPLES.md)** - Complete API testing examples
-- **[📧 Email Templates](EMAIL_TEMPLATES.md)** - Email template documentation
-- **[📮 Gmail Setup](GMAIL_SETUP.md)** - Gmail configuration guide
+Project documentation lives in Notion: **[Email Integrator — Docs](https://app.notion.com/p/379b1345b43e812098facfe43a28b7d2)**
+
+- **[🚀 Deployment (Quick Guide)](https://app.notion.com/p/379b1345b43e81fb9c0ed699037471ff)** - Quick deployment instructions
+- **[🛠️ Deployment & Operations Guide](https://app.notion.com/p/379b1345b43e81f2894fd5716f3361eb)** - Full deployment & ops reference
+- **[🧪 API Testing Examples](https://app.notion.com/p/379b1345b43e81b09070c58168e61f5e)** - Complete API testing examples
+- **[📧 Email Templates](https://app.notion.com/p/379b1345b43e81ee80dfd4f6014ccfbd)** - Email template documentation
+- **[⚙️ Environment Setup](https://app.notion.com/p/379b1345b43e8115af75db27e5903bb6)** - Environment variable configuration
+- **[📮 Gmail Setup](https://app.notion.com/p/379b1345b43e81ba95c7edfc2c4ee2b2)** - Gmail configuration guide
+- **[🔒 SSL / HTTPS Best Practices](https://app.notion.com/p/379b1345b43e81adae74d15fa026691e)** - Production SSL guidance
+- **[🔐 Vault Email Setup](https://app.notion.com/p/379b1345b43e81589398cf83b1862322)** - Storing Gmail credentials in Vault
 
 ## 🔧 Configuration
 
