@@ -213,17 +213,21 @@ public class UserApprovalEmailService {
      * Build HTML template for approval email to admin
      */
     private String buildApprovalEmailTemplate(UserData userData, String approvalToken, String approvalUrl, String denyUrl) {
-        Map<String, String> variables = Map.of(
+        Map<String, String> text = Map.of(
             "userName", userData.getName() != null ? userData.getName() : "User",
             "userEmail", userData.getEmail() != null ? userData.getEmail() : "",
             "approvalToken", approvalToken != null ? approvalToken : "",
-            "approvalUrl", approvalUrl != null ? approvalUrl : "",
-            "denyUrl", denyUrl != null ? denyUrl : "",
             "appName", getAppName(userData) != null ? getAppName(userData) : "Application",
             "appDisplayName", getAppDisplayName(userData) != null ? getAppDisplayName(userData) : "User Management System"
         );
-        
-        return emailTemplateService.processTemplate("approval-email.html", variables);
+
+        // Caller-supplied and rendered inside href, so they go through link validation.
+        Map<String, String> links = Map.of(
+            "approvalUrl", approvalUrl != null ? approvalUrl : "",
+            "denyUrl", denyUrl != null ? denyUrl : ""
+        );
+
+        return emailTemplateService.processTemplate("approval-email.html", text, links);
     }
     
     /**
@@ -231,15 +235,16 @@ public class UserApprovalEmailService {
      */
     private String buildAccountApprovedTemplate(UserData userData) {
         String loginUrl = getLoginUrl(userData);
-        
-        Map<String, String> variables = Map.of(
+
+        Map<String, String> text = Map.of(
             "userName", userData.getName() != null ? userData.getName() : "User",
-            "loginUrl", loginUrl != null ? loginUrl : "",
             "appName", getAppName(userData) != null ? getAppName(userData) : "Application",
             "appDisplayName", getAppDisplayName(userData) != null ? getAppDisplayName(userData) : "User Management System"
         );
-        
-        return emailTemplateService.processTemplate("account-approved.html", variables);
+
+        Map<String, String> links = Map.of("loginUrl", loginUrl != null ? loginUrl : "");
+
+        return emailTemplateService.processTemplate("account-approved.html", text, links);
     }
     
     /**
@@ -253,7 +258,7 @@ public class UserApprovalEmailService {
             "appDisplayName", getAppDisplayName(userData) != null ? getAppDisplayName(userData) : "User Management System"
         );
         
-        return emailTemplateService.processTemplate("account-denied.html", variables);
+        return emailTemplateService.processTemplate("account-denied.html", variables, Map.of());
     }
     
     /**
@@ -267,7 +272,7 @@ public class UserApprovalEmailService {
             "appDisplayName", getAppDisplayName(userData) != null ? getAppDisplayName(userData) : "User Management System"
         );
         
-        return emailTemplateService.processTemplate("registration-pending.html", variables);
+        return emailTemplateService.processTemplate("registration-pending.html", variables, Map.of());
     }
     
     /**
@@ -277,16 +282,19 @@ public class UserApprovalEmailService {
         String resetUrl = userData.getResetUrl() != null ? userData.getResetUrl() : "";
         String expiryTime = userData.getExpiryTime() != null ? userData.getExpiryTime() : "24 hours";
         
-        Map<String, String> variables = Map.of(
+        Map<String, String> text = Map.of(
             "userName", userData.getName() != null ? userData.getName() : "User",
-            "resetUrl", resetUrl,
             "expiryTime", expiryTime,
             "adminEmail", adminEmail != null ? adminEmail : "",
             "appName", getAppName(userData) != null ? getAppName(userData) : "Application",
             "appDisplayName", getAppDisplayName(userData) != null ? getAppDisplayName(userData) : "User Management System"
         );
-        
-        return emailTemplateService.processTemplate("password-reset.html", variables);
+
+        // The highest-risk link in the application: a caller-supplied URL delivered inside a
+        // password-reset email sent from this domain.
+        Map<String, String> links = Map.of("resetUrl", resetUrl);
+
+        return emailTemplateService.processTemplate("password-reset.html", text, links);
     }
     
     private String getFromAddress() {
@@ -398,7 +406,7 @@ public class UserApprovalEmailService {
      * Build HTML template for consultation confirmation email to user
      */
     private String buildConsultationConfirmationTemplate(ConsultationData consultationData) {
-        Map<String, String> variables = Map.of(
+        Map<String, String> text = Map.of(
             "firstName", consultationData.getFirstName() != null ? consultationData.getFirstName() : "",
             "lastName", consultationData.getLastName() != null ? consultationData.getLastName() : "",
             "fullName", consultationData.getFullName(),
@@ -406,11 +414,14 @@ public class UserApprovalEmailService {
             "consultationType", consultationData.getConsultationType() != null ? consultationData.getConsultationType() : "",
             "formattedDate", consultationData.getFormattedDate(),
             "formattedTime", consultationData.getFormattedTime(),
-            "meetingLink", consultationData.getMeetingLink() != null ? consultationData.getMeetingLink() : "",
             "notes", consultationData.getNotes() != null ? consultationData.getNotes() : ""
         );
-        
-        return emailTemplateService.processTemplate("consultation-confirmation.html", variables);
+
+        Map<String, String> links = Map.of(
+            "meetingLink", consultationData.getMeetingLink() != null ? consultationData.getMeetingLink() : ""
+        );
+
+        return emailTemplateService.processTemplate("consultation-confirmation.html", text, links);
     }
     
     /**
@@ -426,10 +437,13 @@ public class UserApprovalEmailService {
         variables.put("consultationType", consultationData.getConsultationType() != null ? consultationData.getConsultationType() : "");
         variables.put("formattedDate", consultationData.getFormattedDate());
         variables.put("formattedTime", consultationData.getFormattedTime());
-        variables.put("meetingLink", consultationData.getMeetingLink() != null ? consultationData.getMeetingLink() : "");
         variables.put("phone", consultationData.getPhone() != null ? consultationData.getPhone() : "");
         variables.put("notes", consultationData.getNotes() != null ? consultationData.getNotes() : "");
-        
-        return emailTemplateService.processTemplate("consultation-notification.html", variables);
+
+        Map<String, String> links = Map.of(
+            "meetingLink", consultationData.getMeetingLink() != null ? consultationData.getMeetingLink() : ""
+        );
+
+        return emailTemplateService.processTemplate("consultation-notification.html", variables, links);
     }
 }
