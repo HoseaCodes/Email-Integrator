@@ -50,18 +50,132 @@ error() {
 
 check_dependencies() {
     log "Checking dependencies..."
-    
+
     command -v aws >/dev/null 2>&1 || error "AWS CLI not installed"
     command -v jq >/dev/null 2>&1 || error "jq not installed"
     command -v zip >/dev/null 2>&1 || error "zip not installed"
-    
+
     # Check AWS credentials
     if ! aws sts get-caller-identity >/dev/null 2>&1; then
         error "AWS credentials not configured"
     fi
-    
+
     success "All dependencies satisfied"
 }
+
+# =============================================================================
+# SECRETS
+# =============================================================================
+#
+# The application refuses to start without these, so failing here — before an S3 upload and a
+# multi-minute environment update — is far cheaper than discovering it from a health check that
+# never goes green.
+#
+# Previously this script set only SERVER_PORT, so JWT_SECRET and MAIL_PASSWORD were never
+# provisioned at all and the deployed service fell back to defaults published in this
+# repository. See docs/ENGINEERING_AUDIT.md CRIT-6.
+#
+# Values are read from the deploying shell's environment and are never written to disk, echoed,
+# or logged. They travel to AWS over TLS via the API and are stored as Elastic Beanstalk
+# environment properties.
+#
+# NOTE: EB environment properties are visible to anyone with console or API read access to the
+# environment, and appear in `describe-configuration-settings` output. That is acceptable for a
+# portfolio deployment and is the documented limitation; AWS Secrets Manager or SSM Parameter
+# Store with an IAM-scoped instance role is the production answer. See docs/AWS_ARCHITECTURE.md.
+
+REQUIRED_SECRETS=(API_KEY_DEFAULT BREVO_API_KEY JWT_SECRET MAIL_PASSWORD)
+
+check_secrets() {
+    log "Checking required application secrets..."
+
+    local missing=()
+    for name in "${REQUIRED_SECRETS[@]}"; do
+        if [[ -z "${!name:-}" ]]; then
+            missing+=("$name")
+        fi
+    done
+
+    if (( ${#missing[@]} > 0 )); then
+        echo >&2
+        echo "The following required environment variables are not set:" >&2
+        printf '  - %s\n' "${missing[@]}" >&2
+        echo >&2
+        echo "The application will not start without them. Export them first, e.g.:" >&2
+        echo "  set -a && . ./.env && set +a && ./eb-deploy.sh" >&2
+        echo >&2
+        echo "See .env.example for what each one is and how to generate it." >&2
+        error "Missing required secrets"
+    fi
+
+    # Catch a too-short signing key here rather than after a full deploy cycle.
+    if (( ${#JWT_SECRET} < 32 )); then
+        error "JWT_SECRET must be at least 32 characters (HS256 needs a 256-bit key). Generate one with: openssl rand -base64 32"
+    fi
+    if (( ${#API_KEY_DEFAULT} < 32 )); then
+        error "API_KEY_DEFAULT must be at least 32 characters. Generate one with: openssl rand -base64 32"
+    fi
+
+    success "All required secrets present (${#REQUIRED_SECRETS[@]} values)"
+}
+
+apply_environment_variables() {
+    log "Applying environment properties to $ENV_NAME..."
+
+    # Built as a JSON document via jq rather than string concatenation so that values containing
+    # quotes, spaces, or shell metacharacters cannot break the payload or leak into a command line.
+    local options
+    options=$(jq -n \
+        --arg apiKey        "$API_KEY_DEFAULT" \
+        --arg brevoKey      "$BREVO_API_KEY" \
+        --arg jwtSecret     "$JWT_SECRET" \
+        --arg mailPassword  "$MAIL_PASSWORD" \
+        --arg allowedHosts  "${APP_EMAIL_ALLOWEDLINKHOSTS:-}" \
+        '[
+          {Namespace: "aws:elasticbeanstalk:application:environment", OptionName: "SERVER_PORT",     Value: "8080"},
+          {Namespace: "aws:elasticbeanstalk:application:environment", OptionName: "API_KEY_DEFAULT", Value: $apiKey},
+          {Namespace: "aws:elasticbeanstalk:application:environment", OptionName: "BREVO_API_KEY",   Value: $brevoKey},
+          {Namespace: "aws:elasticbeanstalk:application:environment", OptionName: "JWT_SECRET",      Value: $jwtSecret},
+          {Namespace: "aws:elasticbeanstalk:application:environment", OptionName: "MAIL_PASSWORD",   Value: $mailPassword}
+        ]
+        + (if $allowedHosts == "" then [] else
+            [{Namespace: "aws:elasticbeanstalk:application:environment", OptionName: "APP_EMAIL_ALLOWEDLINKHOSTS", Value: $allowedHosts}]
+          end)')
+
+    # Passed via a process-substitution file so secrets never appear in the process list, where
+    # any other user on the host could read them with `ps`.
+    aws elasticbeanstalk update-environment \
+        --environment-name "$ENV_NAME" \
+        --option-settings "file://$(write_temp_options "$options")" \
+        --region "$REGION" >/dev/null
+
+    log "Waiting for environment configuration to settle..."
+    aws elasticbeanstalk wait environment-updated \
+        --environment-names "$ENV_NAME" \
+        --region "$REGION"
+
+    success "Environment properties applied"
+}
+
+# Writes options JSON to a private temp file and echoes its path. The file is removed on exit,
+# including on failure, so secrets do not linger in the working directory.
+write_temp_options() {
+    local content="$1"
+    local file
+    file=$(mktemp "${TMPDIR:-/tmp}/eb-options.XXXXXX")
+    chmod 600 "$file"
+    printf '%s' "$content" > "$file"
+    TEMP_FILES+=("$file")
+    echo "$file"
+}
+
+TEMP_FILES=()
+cleanup_temp_files() {
+    for file in "${TEMP_FILES[@]:-}"; do
+        [[ -n "$file" && -f "$file" ]] && rm -f "$file"
+    done
+}
+trap cleanup_temp_files EXIT
 
 validate_jar() {
     local jar_path="$1"
@@ -543,10 +657,12 @@ main() {
     log "Starting AWS Elastic Beanstalk deployment..."
     log "App: $APP_NAME | Env: $ENV_NAME | Region: $REGION"
     
-    # Pre-flight checks
+    # Pre-flight checks. Secrets are validated before anything is uploaded or changed, so a
+    # missing value costs seconds rather than a failed rollout.
     check_dependencies
+    check_secrets
     validate_jar "$JAR_FILE"
-    
+
     # AWS setup
     create_s3_bucket
     create_eb_application
@@ -558,6 +674,11 @@ main() {
     # Environment setup
     create_eb_environment "$solution_stack"
     
+    # Environment properties are applied before the new version is deployed, so the application
+    # finds its configuration already present when it starts rather than crash-looping until a
+    # second update lands.
+    apply_environment_variables
+
     # Deploy application
     create_application_version "$JAR_FILE"
     deploy_to_environment
