@@ -8,6 +8,40 @@
 
 ---
 
+## Resolution status
+
+**This document is a point-in-time snapshot of commit `40995eb` and is deliberately not rewritten as work lands** — the findings are the record of what was actually wrong. The table below tracks what has since been fixed, so nothing here is mistaken for a description of the current code.
+
+Everything below this section describes the repository **as audited**, not as it stands today.
+
+| ID | Finding | Status |
+|---|---|---|
+| CRIT-1 | No authentication on any endpoint | **Fixed** — `280bb20` |
+| CRIT-2 | Unauthenticated open relay with attacker-controlled links | **Fixed** — `280bb20`, `e502ff4` |
+| CRIT-3 | Hardcoded API key literal in source | **Fixed** — `ac68a2a` |
+| CRIT-4 | API key written to standard output | **Fixed** — `ac68a2a` |
+| CRIT-5 | Live Gmail app password in the working tree | **Open — requires manual action.** The credential must be rotated in the Google Account console and `production-secrets-backup.txt` deleted. No commit can do this. |
+| CRIT-6 | JWT signing key defaults to a published value | **Fixed** — `2b8b626` |
+| HIGH-1 | No timeout on any outbound call | **Fixed** (Brevo path) — `ac68a2a` |
+| HIGH-2 | README claims unsupported by the code | **Fixed** — `9c0d623` |
+| HIGH-3 | `POST /email` non-functional demo code | **Fixed** — `ac68a2a` |
+| HIGH-4 | HTML injection in email templates | **Fixed** — `e502ff4` |
+| HIGH-5 | No input validation | **Partially fixed** — `/email` only; the Gmail endpoints still take `Map` bodies |
+| HIGH-6 | No centralized exception handling | **Fixed** — `ac68a2a` |
+| HIGH-7 | No TLS | **Open** — decision recorded in [AWS_ARCHITECTURE.md](AWS_ARCHITECTURE.md); not implemented |
+| HIGH-8 | Effectively no tests, no CI | **Partially fixed** — 1 test → 122; **CI still does not exist** |
+| HIGH-9 | Caller-controlled `From` enables spoofing | **Partially fixed** — `/email` cannot set a sender; `SpringMailService` still can |
+| MED-2 | Stale dependencies, build tooling on the runtime classpath | **Partially fixed** — the Maven 2.0.6 subtree is gone with the SDK; Spring Boot is still 3.2.5 and nothing scans dependencies |
+| MED-5 | Weak operational diagnostics | **Partially fixed** — the fake `/api/spring-mail/health` is removed; no metrics or real `HealthIndicator` yet |
+| MED-9 | Dead and duplicated code | **Mostly fixed** — SMS path, unused DTOs, and `isTokenExpired` removed |
+| MED-10 | `.env` present but unreadable by Spring; no `.env.example` | **Fixed** — `280bb20` |
+
+A newly discovered defect not in the original audit: **Apache HttpClient 5 was silently retrying non-idempotent email sends**, arriving transitively through Spring Cloud Vault. Found by a test that hung; recorded in [ADR 0002](adr/0002-no-automatic-retries-on-email-send.md).
+
+Everything not listed above remains as originally assessed.
+
+---
+
 ## Executive Summary
 
 ### Classification: **Prototype**
