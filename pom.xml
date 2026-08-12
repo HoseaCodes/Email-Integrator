@@ -73,6 +73,21 @@
 		</dependency>
 
 		<!--
+			Spring Security. Before this, every endpoint was reachable anonymously — including
+			/auth/manual-approve and /auth/send-email, which are documented as administrative and
+			which send mail from a real, reputation-bearing domain. See ENGINEERING_AUDIT CRIT-1.
+		-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!--
 			Declared explicitly, not relied on transitively. Spring's ClientHttpRequestFactories
 			auto-selects whichever HTTP client happens to be on the classpath, so the outbound
 			client — and its defaults — would otherwise be decided by an unrelated dependency.

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -37,8 +38,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * <p>Provider behaviour is covered separately by {@code BrevoEmailProviderTest} against a real
  * HTTP server. Splitting them this way keeps each test honest about what it proves.
+ *
+ * <p><b>On {@code addFilters = false}.</b> The security filter chain is bypassed here so these
+ * tests exercise controller and error-handling behaviour without every case needing a valid
+ * credential. That is only acceptable because the security rules are asserted in full, against
+ * the real filter chain, in {@code ApiKeySecurityTest} — including that this very endpoint
+ * returns 401 without a key. Disabling filters to make tests pass, with nothing else covering
+ * them, would be how authentication quietly stops working.
  */
 @WebMvcTest(EmailController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class EmailControllerTest {
 
     @Autowired
