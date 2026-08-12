@@ -77,16 +77,9 @@ public class SpringMailController {
         }
     }
     
-    /**
-     * Health check endpoint
-     * GET /api/spring-mail/health
-     */
-    @GetMapping("/health")
-    public ResponseEntity<Map<String, Object>> health() {
-        return ResponseEntity.ok(Map.of(
-            "status", "UP",
-            "service", "SpringMailService",
-            "timestamp", System.currentTimeMillis()
-        ));
-    }
+    // Removed: GET /api/spring-mail/health, which returned a hardcoded {"status":"UP"}.
+    // A health check that cannot fail is worse than none — it can only ever produce false
+    // confidence, and it reported healthy regardless of whether SMTP was reachable. Use
+    // /actuator/health instead, and see ENGINEERING_AUDIT MED-5 for the real gap: there is
+    // still no HealthIndicator that actually probes the mail dependency.
 }

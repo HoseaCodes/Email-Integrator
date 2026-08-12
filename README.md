@@ -1,204 +1,388 @@
-# 📧 Email Integrator
+# Email Integrator
 
-A Spring Boot microservice for sending templated emails with user approval workflows. Supports multiple email templates including approval requests, account notifications, and registration confirmations.
+A Spring Boot service that sends transactional email through an external provider and through
+Gmail SMTP, built to explore the parts of integration work that are easy to skip: what happens
+when the provider is slow, when it returns 429, when it accepts your request and then the
+connection drops.
 
-## 🚀 Production Status
-
-**✅ LIVE & OPERATIONAL** - Deployed on AWS Elastic Beanstalk
-
-| Base URL (Production) | Value |
-|-----------------------|--------------------------------------------------------------------------|
-| Elastic Beanstalk     | `http://email-integrator-prod.eba-p4bnt2xm.us-east-1.elasticbeanstalk.com` |
-| Production Domain     | http://api.email.hoseacodes.com/                                         |
-
-### 🌐 Production API
-
-#### Send Email
-```bash
-POST /auth/send-email
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "name": "User Name",
-  "templateType": "approval|approved|denied|pending",
-  "appName": "Your App",
-  "appDisplayName": "Your Application Suite",
-  "approvalUrl": "https://yourapp.com/approve",
-  "denyUrl": "https://yourapp.com/deny"
-}
-```
-
-#### Health Check
-```bash
-GET /actuator/health
-```
-
-## 📧 Email Templates
-
-- **`approval`** - Send approval request to admin with approve/deny buttons
-- **`approved`** - Notify user their account was approved
-- **`denied`** - Notify user their account was denied  
-- **`pending`** - Confirm registration is pending admin review
-
-## 🚀 Quick Deployment
-
-### One-Command Deploy to AWS
-```bash
-./eb-deploy.sh
-```
-
-## 📚 Documentation
-
-Project documentation lives in Notion: **[Email Integrator — Docs](https://app.notion.com/p/379b1345b43e812098facfe43a28b7d2)**
-
-- **[🚀 Deployment (Quick Guide)](https://app.notion.com/p/379b1345b43e81fb9c0ed699037471ff)** - Quick deployment instructions
-- **[🛠️ Deployment & Operations Guide](https://app.notion.com/p/379b1345b43e81f2894fd5716f3361eb)** - Full deployment & ops reference
-- **[🧪 API Testing Examples](https://app.notion.com/p/379b1345b43e81b09070c58168e61f5e)** - Complete API testing examples
-- **[📧 Email Templates](https://app.notion.com/p/379b1345b43e81ee80dfd4f6014ccfbd)** - Email template documentation
-- **[⚙️ Environment Setup](https://app.notion.com/p/379b1345b43e8115af75db27e5903bb6)** - Environment variable configuration
-- **[📮 Gmail Setup](https://app.notion.com/p/379b1345b43e81ba95c7edfc2c4ee2b2)** - Gmail configuration guide
-- **[🔒 SSL / HTTPS Best Practices](https://app.notion.com/p/379b1345b43e81adae74d15fa026691e)** - Production SSL guidance
-- **[🔐 Vault Email Setup](https://app.notion.com/p/379b1345b43e81589398cf83b1862322)** - Storing Gmail credentials in Vault
-
-## 🔧 Configuration
-
-Required environment variables:
-- `MAIL_PASSWORD` - Gmail app password
-- `JWT_SECRET` - 256-bit secret key for JWT tokens
+**Status: portfolio project.** Not production-ready, and the [Known Limitations](#known-limitations)
+section says exactly why. Every claim below is backed by code in this repository — if something
+is not implemented, it is listed as not implemented.
 
 ---
 
-## Resources and URI Mappings
+## Why this repository might be interesting
 
-- Send email example - POST /email
-- Get app health - GET /actuator/health
+Most email-integration examples stop at "call the provider's SDK from a `@RestController`". The
+questions this one tries to answer instead:
 
-## Build Application
+- **Sending email is not idempotent.** So what is a retry actually worth? This service does not
+  retry, and [ADR 0002](docs/adr/0002-no-automatic-retries-on-email-send.md) explains why, plus
+  what it would take to make retries safe.
+- **A retry can be hiding in a library default.** Apache HttpClient 5 retries automatically,
+  honouring `Retry-After` on 429 and 503. A test asserting "one send, one HTTP request" hung for
+  ten minutes and exposed it. The client now disables retries explicitly, and a test keeps it
+  that way.
+- **Which failures could have already sent the email?** A refused connection could not have. A
+  read timeout could have. That distinction is modelled as
+  [`EmailProviderException.Reason.isSideEffectPossible()`](src/main/java/com/hoseacodes/emailintegrator/email/EmailProviderException.java)
+  and surfaced to API callers as `deliveryUncertain`.
+- **A provider auth failure is not the caller's fault.** It maps to 502, never 401.
 
-As part of the Maven build, automatically (Maven will invoke the whole build, hence each and every phase till the install, as such any execution listed in the POM with related bindings)
+The [engineering audit](docs/ENGINEERING_AUDIT.md) is also kept in the repository, including the
+findings that were true of my own earlier code — a hardcoded credential, an API key printed to
+stdout, and an unauthenticated endpoint that would mail arbitrary content to arbitrary
+recipients.
 
+---
 
-```bash
-mvn clean install
+## What it demonstrates
+
+Implemented and covered by tests:
+
+| Area | What is actually here |
+|---|---|
+| **Java / Spring Boot** | Java 17, Spring Boot 3.2.5, constructor injection, `@ConfigurationProperties` records with startup validation |
+| **Integration architecture** | `EmailProvider` interface as an error-translation boundary; provider wire types confined to their own package |
+| **Resilience** | Explicit connect/read timeouts; automatic retries deliberately disabled; failures classified by whether a side effect may have occurred |
+| **Security** | Spring Security, deny-by-default filter chain, per-client API keys with constant-time comparison |
+| **Input validation** | Bean Validation on typed request DTOs, with field-level error reporting |
+| **Output encoding** | Context-aware escaping for email templates; scheme and host allowlists for caller-supplied links |
+| **JWT** | Signed, expiring approval links with issuer and token-type validation, and a signing key that must be configured or the app refuses to start |
+| **API design** | One error contract across every endpoint, correlation ids, no stack traces or provider detail in responses |
+| **Testing** | 122 tests, including provider failure simulation against a real HTTP server (WireMock) |
+| **Observability** | Actuator health/info, structured SLF4J logging that never records keys, tokens, or message bodies |
+| **Docker / AWS** | Dockerfile and a scripted Elastic Beanstalk deployment that provisions secrets as environment properties |
+| **Documentation** | Audit, ADRs, and this README kept consistent with the code |
+
+Not implemented — see [Known Limitations](#known-limitations): CI, TLS, idempotency, rate
+limiting, application metrics.
+
+---
+
+## Architecture
+
+```mermaid
+graph TD
+    client["API client<br/>X-API-Key header"]
+    admin["Administrator<br/>clicks a link in an email"]
+
+    subgraph app["Spring Boot application"]
+        sec["Spring Security filter chain<br/>deny by default"]
+        apikey["ApiKeyAuthenticationFilter<br/>constant-time comparison"]
+
+        subgraph api["API layer"]
+            ec["EmailController<br/>POST /email"]
+            uac["UserApprovalController<br/>/auth/**"]
+            smc["SpringMailController<br/>/api/spring-mail/**"]
+            adv["ApiExceptionHandler<br/>single error contract"]
+        end
+
+        subgraph appl["Application layer"]
+            eds["EmailDeliveryService<br/>owns the sender identity"]
+            uaes["UserApprovalEmailService"]
+            ets["EmailTemplateService<br/>escaping"]
+            ls["LinkSanitizer<br/>scheme + host rules"]
+            ats["ApprovalTokenService<br/>JWT issue / verify"]
+        end
+
+        subgraph integ["Integration layer"]
+            ep(["EmailProvider<br/>interface"])
+            bep["BrevoEmailProvider<br/>timeouts, error mapping"]
+        end
+    end
+
+    brevo["Brevo API<br/>api.brevo.com"]
+    gmail["Gmail SMTP<br/>smtp.gmail.com:587"]
+
+    client --> sec --> apikey --> ec & smc & uac
+    admin -->|"signed JWT in query string"| uac
+    uac --> ats
+    ec --> eds --> ep --> bep -->|HTTPS| brevo
+    uac --> uaes --> ets --> ls
+    uaes --> gmail
+    smc --> gmail
+    ec -. failures .-> adv
+    bep -. EmailProviderException .-> adv
+
+    style sec fill:#e8f0ff
+    style ep fill:#fff4e0
 ```
 
-As part of an invocation to the specific phase: Maven will invoke all the executions with a bind to it (and any previous phase), hence not only the specific execution you mentioned
+**Why the `EmailProvider` interface exists with one implementation.** Not in anticipation of more
+providers — that is the premature-abstraction trap. It exists so the application layer never
+imports `sendinblue.ApiException` or knows what an HTTP status code is. It is the boundary where
+provider failures become application failures.
+
+---
+
+## Request flow
+
+`POST /email`, end to end:
+
+1. **Security filter chain** — deny by default. The `X-API-Key` header is compared against
+   configured client keys with `MessageDigest.isEqual`; a missing or wrong key returns 401 in the
+   standard error shape, and the loop does not short-circuit on a match so timing does not leak
+   key position.
+2. **Controller** — `@Valid` runs Bean Validation on the typed DTO. Failures return 400 with
+   per-field errors and never reach the provider. The DTO has no `from` field, so a caller cannot
+   choose the sending identity.
+3. **`EmailDeliveryService`** — applies the configured sender, honours the `app.email.enabled`
+   kill switch, logs recipient *counts* rather than addresses.
+4. **`BrevoEmailProvider`** — maps the command to Brevo's wire format and issues one POST with a
+   3s connect and 10s read timeout. Automatic retries are disabled.
+5. **Response mapping** — a message id becomes `202 Accepted`. The provider queued the message; it
+   is not yet in anyone's mailbox, which is what 202 means.
+6. **Failure mapping** — the provider's status becomes an `EmailProviderException` with a reason
+   and a side-effect flag, which `ApiExceptionHandler` turns into 429 / 502 / 503 / 504 with a
+   correlation id.
+
+---
+
+## Reliability
+
+| Provider outcome | HTTP response | Could it have sent? |
+|---|---|---|
+| 400 rejected | 502 | No |
+| 401 / 403 (our key) | 502 | No |
+| 429 rate limited | 429 + `Retry-After` | No |
+| 5xx | 502 | **Yes** — `deliveryUncertain: true` |
+| Read timeout | 504 | **Yes** — `deliveryUncertain: true` |
+| Connection refused / DNS | 503 | No |
+
+A Brevo 400 maps to 502 rather than 400 deliberately: the caller's request already passed our
+validation, which is the contract we published. If the provider still rejects it, the fault is in
+our mapping or configuration, and telling the caller "bad request" sends them hunting for a
+problem they cannot see.
+
+**No retries.** Sending is not idempotent, and there is no idempotency key, so a retry on any
+side-effect-possible failure risks a duplicate message. Full reasoning, including why a retry
+storm makes a struggling provider worse, is in
+[ADR 0002](docs/adr/0002-no-automatic-retries-on-email-send.md).
+
+**No idempotency mechanism.** Documented as a known gap, not solved.
+
+---
+
+## Security
+
+- **API keys**, per client, minimum 32 characters, no default. The application refuses to start
+  without one rather than coming up open. Chosen over JWT bearer tokens because there is no user
+  store and no identity provider — a bearer flow would mean the service minting tokens for
+  itself. See [`ApiKeyProperties`](src/main/java/com/hoseacodes/emailintegrator/security/ApiKeyProperties.java).
+- **Approval links are a different mechanism on purpose.** A signed, expiring JWT authorises one
+  action for a human clicking a link in a mail client that cannot send headers. Issuer and token
+  type are validated; the signing key has no default and must be at least 256 bits.
+- **Template output is escaped by context.** Text is HTML-escaped; links are validated for scheme
+  (`http`/`https` only) and optionally host before being escaped — because escaping alone leaves
+  `javascript:alert(1)` a perfectly valid `href`.
+- **Secrets** come from environment variables only. Nothing is committed;
+  [`.env.example`](.env.example) documents every value. API keys, JWTs, and provider credentials
+  are never logged.
+- **Error responses** carry a correlation id, never a stack trace, provider response body, SMTP
+  hostname, or account detail.
+
+Full findings and remaining gaps: [docs/ENGINEERING_AUDIT.md](docs/ENGINEERING_AUDIT.md).
+
+---
+
+## Testing
+
+122 tests. The emphasis is on failure paths, because the happy path is exercised by hand
+constantly and the 429-at-3am path is exercised exactly once, in production, unless it is tested.
+
+| Layer | What it proves |
+|---|---|
+| **Provider integration** (WireMock) | 400/401/403/429/500/502/503, read timeout, connection refused, truncated body, missing message id — each asserted for classification *and* whether a retry would be safe |
+| **HTTP contract** (MockMvc) | Status codes, validation errors, the error contract, and that no response leaks a stack trace |
+| **Security** (full context) | Every protected endpoint returns 401 without a key; wrong keys and key prefixes are rejected; public endpoints stay public |
+| **JWT** | Tampered payloads, foreign signing keys, expiry, wrong issuer, wrong token type, the `alg: none` attack, malformed input |
+| **Templating** | Script injection, attribute breakout, nested placeholders, dangerous URL schemes, host allowlist bypass attempts |
+| **Domain** | Command invariants and defensive copying |
+
+WireMock is used rather than a mocked HTTP client because the behaviour worth proving — how a
+read timeout differs from a refused connection — needs a real socket. **No test contacts a live
+provider or sends real email.**
+
+The security tests were verified non-vacuous by mutation: changing `anyRequest().authenticated()`
+to `permitAll()` fails 9 of 18 assertions.
 
 ```bash
-mvn generate-sources
+./mvnw clean verify
 ```
 
-Make Maven to copy dependencies into target/lib supposing
-- you don't want to alter the pom.xml
-- you don't want test scoped (e.g. junit.jar) or provided dependencies (e.g. wlfullclient.jar)
+---
+
+## Observability
+
+- `GET /actuator/health` — public, aggregate status only; component detail is not exposed.
+- `GET /actuator/info` — requires a key.
+- Structured SLF4J logging. Integration calls log operation, outcome, duration, and recipient
+  *counts*. Failures log the classification and whether a side effect was possible.
+- Every error response carries an `errorId` that also appears in the server log, so a caller can
+  quote it and the matching line can be found without exposing detail to them.
+- **Never logged:** API keys, JWTs, provider credentials, message bodies, recipient addresses.
+
+Not implemented: application metrics, request-scoped correlation IDs on successful requests,
+distributed tracing.
+
+---
+
+## Local development
+
+**Prerequisites:** JDK 17, Maven (wrapper included), and optionally Docker.
 
 ```bash
-mvn install dependency:copy-dependencies -DincludeScope=runtime -DoutputDirectory=target/lib
+git clone https://github.com/HoseaCodes/Email-Integrator.git
+cd Email-Integrator
+
+cp .env.example .env
+# Fill in the four required values. Generate secrets with: openssl rand -base64 32
 ```
 
-## Run Application
+Spring Boot does **not** read `.env` on its own — there is no dotenv dependency — so export it:
 
 ```bash
-mvn spring-boot:run
+set -a && . ./.env && set +a
+./mvnw spring-boot:run
 ```
 
-## API Services
-- [Brevo](https://github.com/sendinblue/APIv3-java-library?tab=readme-ov-file)
+The application deliberately **fails to start** if `API_KEY_DEFAULT`, `BREVO_API_KEY`,
+`JWT_SECRET`, or `MAIL_PASSWORD` is missing, or if a key is too short. The error names the
+property and how to fix it.
 
-### Vault
-
-Serve vault locally @ http://127.0.0.1:8200/ui/vault/auth?with=token
+### Developing without sending real email
 
 ```bash
-vault server -dev
+APP_EMAIL_ENABLED=false ./mvnw spring-boot:run
 ```
+
+Requests still run through authentication, validation, mapping, and error handling; sending
+returns `503 EMAIL_SENDING_DISABLED`. To exercise the full provider path instead, point
+`BREVO_BASE_URL` at a local stub.
+
+### Try it
+
+```bash
+curl -s http://localhost:8082/actuator/health
+
+curl -s -X POST http://localhost:8082/email \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY_DEFAULT" \
+  -d '{
+        "to": [{"email": "someone@example.com", "name": "Someone"}],
+        "subject": "Hello",
+        "htmlContent": "<p>Hello from Email Integrator</p>"
+      }'
+```
+
+Omit the header to see the 401 contract; send `{}` with the header to see field-level validation
+errors.
 
 ### Docker
 
-Build Docker Image
-
 ```bash
- docker build -t hoseacodes-emailintegrator .    
- ```
-
-Run Docker Image
-
-```bash
-docker run -p 8080:8080 hoseacodes-emailintegrator
+./mvnw clean package
+docker build -t hoseacodes-emailintegrator .
+docker run --env-file .env -p 8082:8082 hoseacodes-emailintegrator
 ```
 
-Tage Docker Image for Push
+### Tests
 
 ```bash
-docker tag ${imageID} hoseacodes/hoseacodes-emailintegrator:latest
+./mvnw clean verify          # all 122
+./mvnw test -Dtest=BrevoEmailProviderTest   # provider failure modes
 ```
-
-Push Docker Image 
-
-```bash
-docker push hoseacodes/hoseacodes-emailintegrator:latest        
-```
-
-## 🛠️ Tech Stack & Tools
-
-### Core Technologies
-- **Java 17** - Runtime environment
-- **Spring Boot 3.2.5** - Application framework
-- **Spring Mail** - Email sending capabilities
-- **JWT** - Token-based authentication
-- **Thymeleaf** - HTML email templating
-- **Maven** - Build and dependency management
-- **Docker** - Containerization
-- **AWS Elastic Beanstalk** - Cloud deployment
-
-### Original Tools
-- Java 17
-- Maven
-- Spring Boot Starter
-
-## ✅ Current Features
-
-- ✅ **Production Ready** - Deployed on AWS Elastic Beanstalk
-- ✅ **Multiple Email Templates** - Approval, notification, and confirmation emails
-- ✅ **JWT Integration** - Secure token-based approval links
-- ✅ **Gmail Integration** - SMTP email sending via Gmail
-- ✅ **Docker Support** - Containerized deployment
-- ✅ **Health Monitoring** - Built-in health check endpoints
-- ✅ **Error Handling** - Comprehensive error handling and logging
-
-## Future Enhancements 
-
-- [ ] [SSL Cert](./src/main/resources/docs/SSL.md)
-- [ ] [Deploy to Azure](https://spring.io/guides/gs/spring-boot-for-azure)
-- [ ] [Implement Basic Auth](https://medium.com/javarevisited/spring-boot-securing-api-with-basic-authentication-bdd3ad2266f5)
-  - [Another Basic Auth Method](https://www.geeksforgeeks.org/spring-security-basic-authentication/)
-- [ ] [Basic Auth RESTTemplate](https://www.baeldung.com/how-to-use-resttemplate-with-basic-authentication-in-spring)
-- [ ] [Add Swagger]()
-- [ ] [Add Junit Tests]()
-- [ ] [Add PIT Tests]()
-- [ ] [Add Karate Tests]()
-- [ ] [Add Test Thresholds]()
-- [ ] [Create & Deploy Evidence of Tests]()
-- [ ] [Add Github Actions]()
-  - [ ] Build Job
-  - [ ] Deploy Job
-  - [ ] Add Snyk scans
-  - [ ] Add linter job
-  - [ ] Test job
-  - [ ] Secret scan
 
 ---
 
-## 🎯 Project Status
+## API documentation
 
-**✅ PRODUCTION READY** - The Email Integrator is fully deployed and operational on AWS Elastic Beanstalk!
+With the application running:
 
-- **Live URL:** `http://email-integrator-prod.eba-p4bnt2xm.us-east-1.elasticbeanstalk.com`
-- **Status:** All email templates working ✅
-- **Gmail Integration:** Configured and functional ✅  
-- **JWT Authentication:** Implemented and secure ✅
-- **Error Handling:** Comprehensive null-safe implementation ✅
-- **Documentation:** Complete with examples and guides ✅
+- Swagger UI — <http://localhost:8082/swagger-ui.html>
+- OpenAPI JSON — <http://localhost:8082/v3/api-docs>
 
-**Ready for production use!** 🚀 
+Both are reachable without a key; they describe the contract, not data. The `X-API-Key` scheme is
+declared, so Swagger UI's **Authorize** button works.
+
+### Endpoints
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| `POST` | `/email` | API key | Send via Brevo. Typed, validated, returns 202 |
+| `POST` | `/auth/send-email` | API key | Templated Gmail send |
+| `POST` | `/auth/manual-approve` · `/auth/manual-deny` | API key | Administrative |
+| `POST` | `/api/spring-mail/send` · `/send-simple` | API key | Direct Gmail SMTP |
+| `GET` | `/auth/approve` · `/auth/deny` | Signed JWT | Clicked from an email |
+| `GET` | `/actuator/health` | none | Platform probe |
+| `GET` | `/actuator/info` | API key | |
+
+---
+
+## AWS deployment
+
+Single-instance Elastic Beanstalk on `t3.micro`, deployed by
+[`eb-deploy.sh`](eb-deploy.sh), which validates required secrets before uploading anything and
+applies them as environment properties before the new version rolls out.
+
+**There is no TLS.** A single-instance environment has no load balancer and therefore no
+certificate termination point. Do not put real traffic through it. The evolution path — and why
+CloudFront rather than an ALB — is in [docs/AWS_ARCHITECTURE.md](docs/AWS_ARCHITECTURE.md).
+
+---
+
+## Engineering decisions
+
+1. **[Dropped the vendor SDK for a hand-written HTTP client](docs/adr/0001-brevo-http-client-over-vendor-sdk.md)** —
+   the SDK authenticated through global static state, exposed no timeout configuration, and pulled
+   Maven 2.0.6 build tooling onto the runtime classpath. Brevo's send is one POST.
+2. **[No automatic retries](docs/adr/0002-no-automatic-retries-on-email-send.md)** — and disabling
+   the HTTP client's hidden ones, after a test hang revealed them.
+3. **One interface, one implementation** — the boundary earns its place by translating errors, not
+   by anticipating providers that do not exist.
+4. **Fail fast on configuration** — no secret has a default. A service that refuses to start beats
+   one that starts insecurely.
+5. **The sender is not a request field** — `EmailDraft` has no `sender`, so caller-controlled
+   spoofing cannot be expressed, rather than being rejected by a check someone might remove.
+
+---
+
+## Known limitations
+
+Honest list. These are why this is not described as production-ready.
+
+- **No CI.** There is no GitHub Actions workflow. Tests pass locally and must be run manually.
+- **No TLS in the deployment.** Single-instance Elastic Beanstalk cannot terminate HTTPS.
+- **No idempotency.** A client retry or a duplicate submission sends a second email. The
+  `deliveryUncertain` flag tells a caller when this risk applies, but nothing prevents it.
+- **No rate limiting.** An authenticated client can send until the provider's quota is exhausted.
+  Do not expose this to untrusted clients.
+- **The Gmail path lags the Brevo path.** `/api/spring-mail/**` and parts of `/auth/**` still use
+  `Map` request bodies without Bean Validation, and `SpringMailService` still accepts a
+  caller-supplied `from`. The Brevo path shows the intended pattern.
+- **`GET /auth/approve` and `/auth/deny` change state.** A mail client's link prefetcher can
+  trigger an approval. Fixing this needs single-use tokens, which needs server-side state.
+- **Spring Boot 3.2.5 is past its OSS support window**, and no dependency scanning runs.
+- **API keys are compared against plaintext configuration values**, not hashes.
+- **The Dockerfile is not hardened** — runs as root, uses a JDK rather than a JRE base, no
+  multi-stage build, and requires a prior host-side `package`.
+- **Templating is hand-rolled**, not Thymeleaf. Escaping is applied deliberately at each
+  substitution rather than by default from the engine.
+
+## Documentation
+
+- [Engineering audit](docs/ENGINEERING_AUDIT.md) — findings, severities, and current state
+- [ADR 0001 — HTTP client over vendor SDK](docs/adr/0001-brevo-http-client-over-vendor-sdk.md)
+- [ADR 0002 — No automatic retries](docs/adr/0002-no-automatic-retries-on-email-send.md)
+- [AWS architecture](docs/AWS_ARCHITECTURE.md) — what is deployed and how it could evolve
+
+---
+
+## AI-assisted development
+
+Parts of this codebase were written with AI assistance. Every change was reviewed, and the tests
+were treated as the check on generated code rather than as decoration — the HttpClient retry
+defect and two of my own incorrect test assertions were both found by running things, not by
+reading them. Architectural decisions and their trade-offs are recorded in the ADRs so they can
+be defended rather than merely pointed at.
