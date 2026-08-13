@@ -95,7 +95,7 @@ stands in for it.
 
 ### 8. Dependency vulnerability scanning
 Deliberately excluded from CI so far, and the reasoning is in
-[`.github/workflows/build.yml`](../.github/workflows/build.yml): OWASP dependency-check needs the
+[`.github/workflows/build.yml`](https://github.com/HoseaCodes/Email-Integrator/blob/master/.github/workflows/build.yml): OWASP dependency-check needs the
 full NVD feed and fails for reasons unrelated to the change under review. Revisit with a scanner
 that fails fast and reports precisely. Whatever is chosen, the README must not imply a passing
 scan means the application is secure.

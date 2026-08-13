@@ -1,6 +1,7 @@
 # Email Integrator
 
 [![Build](https://github.com/HoseaCodes/Email-Integrator/actions/workflows/build.yml/badge.svg)](https://github.com/HoseaCodes/Email-Integrator/actions/workflows/build.yml)
+[![Docs](https://github.com/HoseaCodes/Email-Integrator/actions/workflows/docs.yml/badge.svg)](https://github.com/HoseaCodes/Email-Integrator/actions/workflows/docs.yml)
 
 A Spring Boot service that sends transactional email through an external provider and through
 Gmail SMTP, built to explore the parts of integration work that are easy to skip: what happens
@@ -374,13 +375,37 @@ Honest list. These are why this is not described as production-ready.
 
 ## Documentation
 
-- [Engineering audit](docs/ENGINEERING_AUDIT.md) — findings, severities, and current state
-- [ADR 0001 — HTTP client over vendor SDK](docs/adr/0001-brevo-http-client-over-vendor-sdk.md)
-- [ADR 0002 — No automatic retries](docs/adr/0002-no-automatic-retries-on-email-send.md)
-- [Reliability](docs/RELIABILITY.md) — timeouts, retry semantics, idempotency, failure modes
-- [Roadmap](docs/ROADMAP.md) — what is left, in value order, and what is deliberately not planned
-- [Agent instructions](AGENTS.md) — rules for AI-assisted changes to this repository
-- [AWS architecture](docs/AWS_ARCHITECTURE.md) — what is deployed and how it could evolve
+**[📖 Published documentation → hoseacodes.github.io/Email-Integrator](https://hoseacodes.github.io/Email-Integrator/)**
+
+Built with MkDocs Material and published by GitHub Actions on every push to `master`. The API
+reference is generated from the application during the build rather than committed, so it cannot
+drift from the code.
+
+
+| Page | What it covers |
+|---|---|
+| [Architecture](docs/ARCHITECTURE.md) | System context, layers, the integration boundary, request flow |
+| [Security](docs/SECURITY.md) | Authentication model, JWT design, secrets, abuse, known gaps |
+| [Reliability](docs/RELIABILITY.md) | Timeouts, retry semantics, idempotency, failure modes |
+| [Operations](docs/OPERATIONS.md) | Health, logs, troubleshooting, operational signals |
+| [AWS architecture](docs/AWS_ARCHITECTURE.md) | What is deployed, what it costs, how it evolves |
+| [Roadmap](docs/ROADMAP.md) | What is left, and what is deliberately not planned |
+| [Decision records](docs/adr/README.md) | Contested decisions and their trade-offs |
+| [Engineering audit](docs/ENGINEERING_AUDIT.md) | Point-in-time audit with a resolution status table |
+| [Agent instructions](AGENTS.md) | Rules for AI-assisted changes to this repository |
+
+### Building the docs locally
+
+```bash
+pip install -r requirements-docs.txt
+mkdocs serve                 # http://127.0.0.1:8000
+
+# The API reference is generated, not committed:
+./mvnw clean verify && cp target/openapi.json docs/api/
+```
+
+`mkdocs build --strict` is what CI runs — it turns broken internal links and missing navigation
+targets into failures.
 
 ---
 

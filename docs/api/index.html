@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<!--
+  Swagger UI for the generated OpenAPI document.
+
+  openapi.json is NOT committed. It is produced by OpenApiSpecGenerationTest during `mvn verify`
+  and staged into this directory by .github/workflows/docs.yml, so the published reference always
+  matches the code that built it. A checked-in spec drifts silently, and a published reference that
+  disagrees with the running service is worse than none.
+
+  Building the docs locally without running the Maven build will show the notice below rather than
+  a broken page.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email Integrator — API reference</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css">
+  <style>
+    body { margin: 0; background: #fafafa; }
+    .topbar { display: none; }
+    #missing-spec {
+      display: none;
+      margin: 3rem auto;
+      max-width: 44rem;
+      padding: 1.25rem 1.5rem;
+      border: 1px solid #e0b400;
+      border-left-width: 4px;
+      border-radius: 4px;
+      background: #fffbe6;
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+    }
+    #missing-spec code {
+      background: #00000010;
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+<div id="missing-spec">
+  <strong>API specification not found.</strong>
+  <p>
+    <code>openapi.json</code> is generated from the application rather than committed, so it is
+    absent until the Maven build has run.
+  </p>
+  <p>To generate it locally:</p>
+  <p><code>./mvnw clean verify &amp;&amp; cp target/openapi.json docs/api/</code></p>
+  <p>
+    In CI this is staged automatically by the documentation workflow, so the published reference
+    always matches the code that built it.
+  </p>
+</div>
+
+<div id="swagger-ui"></div>
+
+<script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js" crossorigin></script>
+<script>
+  fetch('openapi.json', { method: 'HEAD' })
+    .then(function (response) {
+      if (!response.ok) {
+        throw new Error('spec missing');
+      }
+      window.ui = SwaggerUIBundle({
+        url: 'openapi.json',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        docExpansion: 'list',
+        defaultModelsExpandDepth: 1,
+        // The published docs are static and there is no CORS-enabled public instance to call,
+        // so "Try it out" would only ever produce confusing network errors.
+        supportedSubmitMethods: []
+      });
+    })
+    .catch(function () {
+      document.getElementById('missing-spec').style.display = 'block';
+    });
+</script>
+</body>
+</html>

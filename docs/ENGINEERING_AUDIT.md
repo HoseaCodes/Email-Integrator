@@ -242,7 +242,7 @@ The `manual-*` endpoints are the sharpest illustration: the Javadoc says "by adm
 
 There is a second-order effect specific to a portfolio: the README claims *"JWT Authentication: Implemented and secure ✅"*. A reviewer who greps for `SecurityFilterChain`, finds nothing, and re-reads that line does not conclude "incomplete project." They conclude "claims I cannot trust." That is a far more expensive outcome than a missing feature.
 
-**Affected files.** [pom.xml](pom.xml) · [EmailController.java](src/main/java/com/hoseacodes/emailintegrator/controller/EmailController.java) · [SpringMailController.java](src/main/java/com/hoseacodes/emailintegrator/controller/SpringMailController.java) · [UserApprovalController.java](src/main/java/com/hoseacodes/emailintegrator/controller/UserApprovalController.java) · [application.properties](src/main/resources/application.properties)
+**Affected files.** [pom.xml](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/pom.xml) · [EmailController.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/controller/EmailController.java) · [SpringMailController.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/controller/SpringMailController.java) · [UserApprovalController.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/controller/UserApprovalController.java) · [application.properties](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/resources/application.properties)
 
 **Recommended solution.** Add `spring-boot-starter-security` and a single explicit `SecurityFilterChain`: deny by default, permit `/actuator/health` and the OpenAPI paths, and require an authenticated caller everywhere else. For a machine-to-machine email API, a validated static API key in a header via a small `OncePerRequestFilter` is the *honest* design and is easy to defend in interview — a JWT bearer flow with no identity provider and no user store would be pattern-collecting. Keep the existing JJWT code for what it actually is: signed one-time approval links, which is a legitimate and separate concern.
 
@@ -259,7 +259,7 @@ There is a second-order effect specific to a portfolio: the README claims *"JWT 
 - `approvalUrl`, `denyUrl`, `loginUrl`, `resetUrl`, `meetingLink` — **URLs placed directly into the email body**
 - `appName`, `appDisplayName`, `name` — display strings placed into the body
 
-Those values reach [`EmailTemplateService.replaceVariables()`](src/main/java/com/hoseacodes/emailintegrator/service/EmailTemplateService.java#L48-L58), which performs raw `String.replace()` into an HTML document with **no escaping of any kind**, and the result is sent as `text/html` from `info@ambitiousconcept.com` over your authenticated Gmail connection.
+Those values reach [`EmailTemplateService.replaceVariables()`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/EmailTemplateService.java#L48-L58), which performs raw `String.replace()` into an HTML document with **no escaping of any kind**, and the result is sent as `text/html` from `info@ambitiousconcept.com` over your authenticated Gmail connection.
 
 The `password-reset` template is the worst case. An anonymous caller supplies a victim address and their own `resetUrl`, and your domain delivers a password-reset email with the attacker's link.
 
@@ -271,7 +271,7 @@ Because there is no escaping, the injection is not limited to the URL slot — a
 - **Sender reputation destruction.** Spam complaints attach to `ambitiousconcept.com` and to the Gmail account. Domain reputation is slow to rebuild and Google will suspend the account for bulk unsolicited mail.
 - **Quota and cost exhaustion.** Gmail enforces daily send limits; an abuser exhausts them, and legitimate mail stops.
 
-**Affected files.** [UserApprovalController.java:207-360](src/main/java/com/hoseacodes/emailintegrator/controller/UserApprovalController.java#L207-L360) · [EmailTemplateService.java:48-58](src/main/java/com/hoseacodes/emailintegrator/service/EmailTemplateService.java#L48-L58) · [UserApprovalEmailService.java](src/main/java/com/hoseacodes/emailintegrator/service/UserApprovalEmailService.java) · all seven files in [templates/](src/main/resources/templates/)
+**Affected files.** [UserApprovalController.java:207-360](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/controller/UserApprovalController.java#L207-L360) · [EmailTemplateService.java:48-58](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/EmailTemplateService.java#L48-L58) · [UserApprovalEmailService.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/UserApprovalEmailService.java) · all seven files in [templates/](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/resources/templates)
 
 **Recommended solution.** Four layers, in this order:
 
@@ -286,7 +286,7 @@ Because there is no escaping, the injection is not limited to the URL slot — a
 
 #### CRIT-3 — Hardcoded API key literal in committed source, overriding configuration
 
-**Issue.** [`BrevoEmailDelegate.setBrevoAPIKey()`](src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L102-L111):
+**Issue.** [`BrevoEmailDelegate.setBrevoAPIKey()`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L102-L111):
 
 ```java
 String brevoApiKey = brevoConfiguration.getApikey();
@@ -304,7 +304,7 @@ Its format does not match Brevo's `xkeysib-` key convention, so it is most likel
 
 **Why it matters.** Independently of whether this particular string is valuable, a hardcoded credential that *overrides* the correct configuration is the exact pattern secret-scanning tooling exists to catch, and it is what a reviewer will point at when asked "did this candidate handle secrets carefully?" The commented-out correct line makes it worse, not better: it demonstrates the right answer was known and then bypassed.
 
-**Affected files.** [BrevoEmailDelegate.java:102-111](src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L102-L111)
+**Affected files.** [BrevoEmailDelegate.java:102-111](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L102-L111)
 
 **Recommended solution.** Delete the literal, restore `apiKey.setApiKey(brevoApiKey)`, and fail fast at startup if the key is absent rather than silently sending with a null key. Verify in the Brevo console whether the literal ever corresponded to a real key; revoke it if so. History rewriting is not required — no *real* secret was ever committed (see Strength 3) — but the literal should be removed from the working tree regardless.
 
@@ -314,11 +314,11 @@ Its format does not match Brevo's `xkeysib-` key convention, so it is most likel
 
 #### CRIT-4 — API key written to standard output
 
-**Issue.** [`BrevoEmailDelegate.java:106` and `:109`](src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L106-L109) print the Brevo API key to stdout on **every single send**. On Elastic Beanstalk, stdout is captured, written to the instance log files, and forwarded to CloudWatch Logs when log streaming is enabled.
+**Issue.** [`BrevoEmailDelegate.java:106` and `:109`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L106-L109) print the Brevo API key to stdout on **every single send**. On Elastic Beanstalk, stdout is captured, written to the instance log files, and forwarded to CloudWatch Logs when log streaming is enabled.
 
 **Why it matters.** Credentials in logs are credentials in every downstream system that touches those logs: CloudWatch, S3 archives, any aggregator, and anyone with read access to any of them. Log retention outlives credential rotation, so the exposure persists after the key is changed. Log access is also typically granted far more broadly than secret access — which is precisely why this class of leak is so damaging.
 
-**Affected files.** [BrevoEmailDelegate.java:106,109](src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L106-L109) — and 14 further `System.out.println` / `printStackTrace` calls in the same class (MED-4).
+**Affected files.** [BrevoEmailDelegate.java:106,109](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L106-L109) — and 14 further `System.out.println` / `printStackTrace` calls in the same class (MED-4).
 
 **Recommended solution.** Remove both lines. Replace all `System.out`/`printStackTrace` in the class with SLF4J at appropriate levels. Establish and document the rule that credentials, tokens, and `Authorization` headers are never logged at any level.
 
@@ -356,15 +356,15 @@ Its format does not match Brevo's `xkeysib-` key convention, so it is most likel
 
 **Issue.** Three compounding defects in one credential path.
 
-*First*, the fallback chain is publicly known. [`application.properties:37`](src/main/resources/application.properties#L37):
+*First*, the fallback chain is publicly known. [`application.properties:37`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/resources/application.properties#L37):
 
 ```properties
 app.jwt.secret=${JWT_SECRET:default-secret-key-change-in-production}
 ```
 
-and [`ApprovalTokenService.java:22`](src/main/java/com/hoseacodes/emailintegrator/service/ApprovalTokenService.java#L22) declares a second fallback, `mySecretKey`. Both strings are in a public repository.
+and [`ApprovalTokenService.java:22`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/ApprovalTokenService.java#L22) declares a second fallback, `mySecretKey`. Both strings are in a public repository.
 
-*Second*, **nothing provisions `JWT_SECRET` in production.** `eb-deploy.sh` writes exactly one environment property — `SERVER_PORT` ([eb-deploy.sh:254](eb-deploy.sh)) — and never sets `JWT_SECRET` or `MAIL_PASSWORD`. Unless it was set out-of-band through the console (undocumented anywhere in the repository), **the live service is signing approval tokens with `default-secret-key-change-in-production`.**
+*Second*, **nothing provisions `JWT_SECRET` in production.** `eb-deploy.sh` writes exactly one environment property — `SERVER_PORT` ([eb-deploy.sh:254](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/eb-deploy.sh)) — and never sets `JWT_SECRET` or `MAIL_PASSWORD`. Unless it was set out-of-band through the console (undocumented anywhere in the repository), **the live service is signing approval tokens with `default-secret-key-change-in-production`.**
 
 *Third*, there is no length validation. `Keys.hmacShaKeyFor(jwtSecret.getBytes())` requires ≥256 bits for HS256; both fallbacks are shorter and would throw `WeakKeyException` at first use — which means the failure surfaces as a runtime 500 on the first approval email rather than as a refusal to start.
 
@@ -372,7 +372,7 @@ and [`ApprovalTokenService.java:22`](src/main/java/com/hoseacodes/emailintegrato
 
 Note the interaction with CRIT-1: the approval token is currently the *only* access control anywhere in the application, and it rests on a key printed in the README's own repository.
 
-**Affected files.** [ApprovalTokenService.java:22-30](src/main/java/com/hoseacodes/emailintegrator/service/ApprovalTokenService.java#L22-L30) · [application.properties:37](src/main/resources/application.properties#L37) · [eb-deploy.sh](eb-deploy.sh)
+**Affected files.** [ApprovalTokenService.java:22-30](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/ApprovalTokenService.java#L22-L30) · [application.properties:37](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/resources/application.properties#L37) · [eb-deploy.sh](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/eb-deploy.sh)
 
 **Recommended solution.** Remove both insecure defaults so the property is mandatory, and **fail fast at startup** if it is missing or shorter than 32 bytes — a `@PostConstruct` check or a `@ConfigurationProperties` bean with `@NotBlank`/`@Size(min=32)`. A service that refuses to start beats a service that starts insecurely; the failure is loud, immediate, and impossible to miss. Then extend `eb-deploy.sh` to set the environment properties it needs, sourcing them from the environment rather than from a file. Add `iss` (issuer) and consider `aud` (audience) claims and validate them, so tokens minted by another of your services are not accepted here.
 
@@ -390,19 +390,19 @@ Note the interaction with CRIT-1: the approval token is currently the *only* acc
 
 | Call site | Configuration | Default |
 |---|---|---|
-| [`AppConfiguration.restTemplate()`](src/main/java/com/hoseacodes/emailintegrator/config/AppConfiguration.java#L8-L11) | `new RestTemplate()` — bare | **infinite** connect and read |
-| [`MailConfig.getJavaMailSender()`](src/main/java/com/hoseacodes/emailintegrator/config/MailConfig.java#L26-L44) | no `mail.smtp.*timeout` properties | **infinite** connection, I/O and write |
+| [`AppConfiguration.restTemplate()`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/config/AppConfiguration.java#L8-L11) | `new RestTemplate()` — bare | **infinite** connect and read |
+| [`MailConfig.getJavaMailSender()`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/config/MailConfig.java#L26-L44) | no `mail.smtp.*timeout` properties | **infinite** connection, I/O and write |
 | Brevo SDK (`TransactionalEmailsApi`) | uses SDK default `ApiClient` | SDK-managed, unconfigured |
 
 `grep -riE "timeout|ConnectTimeout|ReadTimeout|RequestFactory"` over `src/main` returns nothing.
 
 **Why it matters.** This is the classic cascading-failure mechanism, and it is materially worse here because of the deployment topology. Tomcat has a bounded worker pool (200 by default). Every request blocked on a hung socket holds a worker. If Brevo or Gmail becomes slow rather than unavailable — the common failure mode, and the dangerous one, because a *down* dependency fails fast while a *slow* dependency ties up resources — workers accumulate until the pool is exhausted. At that point the service stops answering **every** endpoint, including `/actuator/health`. EB's health check then fails and the instance is replaced, dropping in-flight work.
 
-The environment is `SingleInstance` on a `t3.micro` ([eb-deploy.sh:244-247](eb-deploy.sh)): one instance, no load balancer, no capacity to absorb this.
+The environment is `SingleInstance` on a `t3.micro` ([eb-deploy.sh:244-247](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/eb-deploy.sh)): one instance, no load balancer, no capacity to absorb this.
 
 The rule worth internalising: **an outbound call without a timeout is an unbounded resource commitment to a system you do not control.**
 
-**Affected files.** [AppConfiguration.java](src/main/java/com/hoseacodes/emailintegrator/config/AppConfiguration.java) · [MailConfig.java](src/main/java/com/hoseacodes/emailintegrator/config/MailConfig.java) · [BrevoEmailDelegate.java](src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java)
+**Affected files.** [AppConfiguration.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/config/AppConfiguration.java) · [MailConfig.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/config/MailConfig.java) · [BrevoEmailDelegate.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java)
 
 **Recommended solution.** Build `RestTemplate` through `RestTemplateBuilder` with explicit connect and read timeouts (5s / 10s are sensible starting points and should be configuration properties, not literals). Set `mail.smtp.connectiontimeout`, `mail.smtp.timeout`, and `mail.smtp.writetimeout` in `MailConfig`. Configure the Brevo SDK's `ApiClient` timeouts explicitly rather than inheriting them.
 
@@ -430,7 +430,7 @@ The internal contradiction is the most damaging part: line 200 claims JWT authen
 
 **Why it matters.** Documentation is a work product, and for a consulting engagement it is *the* work product a client sees most. A reviewer assessing you for consulting work reads an overclaiming README as evidence about how you will describe delivery status on their project. Accurate self-assessment — "here is what works, here is what does not, here is why" — reads as more senior than a green checklist, not less.
 
-**Affected files.** [README.md](README.md)
+**Affected files.** [README.md](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/README.md)
 
 **Recommended solution.** Rewrite (Phase 22) with the rule that every claim traces to code or configuration. Replace "production ready" with an accurate classification, delete the Thymeleaf claim (or make it true per CRIT-2), and add a candid *Known Limitations* section. A reviewer who sees you documenting your own gaps trusts everything else you wrote.
 
@@ -440,7 +440,7 @@ The internal contradiction is the most damaging part: line 200 claims JWT authen
 
 #### HIGH-3 — `POST /email` is non-functional demo code wired to a live endpoint
 
-**Issue.** [`BrevoEmailDelegate.convertSmtpInput()`](src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L126-L149) **discards its input** and constructs a fixed message:
+**Issue.** [`BrevoEmailDelegate.convertSmtpInput()`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L126-L149) **discards its input** and constructs a fixed message:
 
 ```java
 emailInput.setSubject("Welcome to Brevo");                   // hardcoded
@@ -457,7 +457,7 @@ The only use of the `input` parameter is interpolating `getCompanySignature()` i
 
 Note also the personal-email exposure: `mr.dhosea@gmail.com` is published in a public repository.
 
-**Affected files.** [BrevoEmailDelegate.java:113-149](src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L113-L149) · [EmailController.java](src/main/java/com/hoseacodes/emailintegrator/controller/EmailController.java) · [EmailDeliveryService.java](src/main/java/com/hoseacodes/emailintegrator/service/EmailDeliveryService.java)
+**Affected files.** [BrevoEmailDelegate.java:113-149](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L113-L149) · [EmailController.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/controller/EmailController.java) · [EmailDeliveryService.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/EmailDeliveryService.java)
 
 **Recommended solution.** Decide, explicitly, and document the decision:
 
@@ -472,7 +472,7 @@ Either way the SMS code goes: it is entirely unreachable.
 
 #### HIGH-4 — HTML injection in email templates
 
-**Issue.** [`EmailTemplateService.replaceVariables()`](src/main/java/com/hoseacodes/emailintegrator/service/EmailTemplateService.java#L48-L58) substitutes caller-controlled values into HTML with `String.replace()` and no escaping. Reached from every `sendXxxEmail` method in `UserApprovalEmailService`. The injectable fields include `userName`, `appName`, `appDisplayName`, `company`, `notes`, `firstName`, `lastName`, and every URL slot.
+**Issue.** [`EmailTemplateService.replaceVariables()`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/EmailTemplateService.java#L48-L58) substitutes caller-controlled values into HTML with `String.replace()` and no escaping. Reached from every `sendXxxEmail` method in `UserApprovalEmailService`. The injectable fields include `userName`, `appName`, `appDisplayName`, `company`, `notes`, `firstName`, `lastName`, and every URL slot.
 
 A `notes` value of `"><script>...` or `" onmouseover="...` escapes its attribute or element context and injects arbitrary markup into the message body.
 
@@ -480,7 +480,7 @@ A `notes` value of `"><script>...` or `" onmouseover="...` escapes its attribute
 
 A related instance: `ConsultationData.generateCalendarEvent()` concatenates unescaped `company`, `notes`, and `meetingLink` into ICS content, where CRLF sequences are field separators — the same injection class in a different grammar.
 
-**Affected files.** [EmailTemplateService.java:48-58](src/main/java/com/hoseacodes/emailintegrator/service/EmailTemplateService.java#L48-L58) · [ConsultationData.java:154-200](src/main/java/com/hoseacodes/emailintegrator/model/ConsultationData.java#L154-L200) · [templates/](src/main/resources/templates/)
+**Affected files.** [EmailTemplateService.java:48-58](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/EmailTemplateService.java#L48-L58) · [ConsultationData.java:154-200](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/model/ConsultationData.java#L154-L200) · [templates/](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/resources/templates)
 
 **Recommended solution.** Adopt Thymeleaf, which escapes by default and is context-aware — and which makes the existing README claim true. If keeping the hand-rolled approach, escape every value with `HtmlUtils.htmlEscape()` before substitution and treat URL slots separately with scheme/host validation. Escape or reject CRLF in ICS fields.
 
@@ -492,13 +492,13 @@ A related instance: `ConsultationData.generateCalendarEvent()` concatenates unes
 
 **Issue.** `grep -rn "@Valid\|@NotNull\|@NotBlank\|@Email\|@Size"` over `src/main/java` returns **zero matches**. `spring-boot-starter-validation` is not a dependency — `jakarta.validation-api` appears only transitively via swagger-core, with no Hibernate Validator implementation, so annotations would be silently inert even if added.
 
-Three endpoints take `Map<String,String>` or `Map<String,Object>` as the request body, so there is no schema at all. Validation is hand-rolled null-checking scattered through controllers ([UserApprovalController:309-313](src/main/java/com/hoseacodes/emailintegrator/controller/UserApprovalController.java#L309-L313) checks eight fields in one `if`).
+Three endpoints take `Map<String,String>` or `Map<String,Object>` as the request body, so there is no schema at all. Validation is hand-rolled null-checking scattered through controllers ([UserApprovalController:309-313](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/controller/UserApprovalController.java#L309-L313) checks eight fields in one `if`).
 
 Consequences: no email-format checking anywhere (`helper.setTo(...)` throws on a malformed address, surfacing as a 500 rather than a 400); no length bounds, so a caller can post a multi-megabyte `htmlContent` or a 10,000-entry `to` list; no rejection of empty strings; `Map<String,String>` bodies produce empty OpenAPI schemas (MED-7).
 
 **Why it matters.** Validation is where a well-designed API states its contract. Without it, malformed input becomes a 500 that looks like a server defect, callers cannot tell what a valid request looks like, unbounded fields become a memory-pressure vector on a `t3.micro`, and `@RequestBody Map` forfeits schema, validation, and documentation in a single stroke.
 
-**Affected files.** [pom.xml](pom.xml) · all three controllers · [SimpleEmailRequest.java](src/main/java/com/hoseacodes/emailintegrator/model/SimpleEmailRequest.java) · [EmailInput.java](src/main/java/com/hoseacodes/emailintegrator/model/EmailInput.java)
+**Affected files.** [pom.xml](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/pom.xml) · all three controllers · [SimpleEmailRequest.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/model/SimpleEmailRequest.java) · [EmailInput.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/model/EmailInput.java)
 
 **Recommended solution.** Add `spring-boot-starter-validation`. Replace `Map` bodies with typed request DTOs (Java records) annotated with `@NotBlank`, `@Email`, `@Size`, `@Valid` on nested types and collections. Add `@Valid` at controller parameters and map `MethodArgumentNotValidException` to a 400 with per-field errors in the standard error shape (HIGH-6). Set `server.max-http-request-header-size` and an explicit body-size limit.
 
@@ -520,7 +520,7 @@ new SimpleEmailResponse(false, "Internal server error: " + e.getMessage());
 
 `e.getMessage()` on a `MailException` typically contains the SMTP host, port, and the server's rejection text — infrastructure detail a caller has no business seeing. Meanwhile `EmailController` has **no** handler at all: `deliverEmail` declares `throws Exception`, so a Brevo `ApiException` propagates to Spring's default handler and returns a generic 500 in a completely different response shape.
 
-There are at least four distinct error shapes across three controllers: `SimpleEmailResponse`, `Map.of("error", ...)`, `Map.of("error", ..., "details", ...)`, and Spring's default error body. Status codes are also wrong in places — a provider failure returns 500 from `/api/spring-mail/send` but 400 from `/auth/send-email` ([UserApprovalController:241](src/main/java/com/hoseacodes/emailintegrator/controller/UserApprovalController.java#L241)), even though the caller's request was valid in both cases.
+There are at least four distinct error shapes across three controllers: `SimpleEmailResponse`, `Map.of("error", ...)`, `Map.of("error", ..., "details", ...)`, and Spring's default error body. Status codes are also wrong in places — a provider failure returns 500 from `/api/spring-mail/send` but 400 from `/auth/send-email` ([UserApprovalController:241](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/controller/UserApprovalController.java#L241)), even though the caller's request was valid in both cases.
 
 **Why it matters.** A consistent, machine-readable error contract is what makes an API programmable — clients need to branch on a stable `code`, not parse prose. Leaking exception text hands an attacker free reconnaissance about your infrastructure. And a 400 for a provider-side failure actively misleads callers into "fixing" a correct request.
 
@@ -534,10 +534,10 @@ There are at least four distinct error shapes across three controllers: `SimpleE
 
 #### HIGH-7 — No TLS; the service is documented and deployed over plain HTTP
 
-**Issue.** The EB environment is created as `EnvironmentType: SingleInstance` ([eb-deploy.sh:244-247](eb-deploy.sh)) — no load balancer, therefore no ACM certificate attachment point and no TLS termination. Consistently:
+**Issue.** The EB environment is created as `EnvironmentType: SingleInstance` ([eb-deploy.sh:244-247](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/eb-deploy.sh)) — no load balancer, therefore no ACM certificate attachment point and no TLS termination. Consistently:
 
 - README advertises `http://email-integrator-prod...` and `http://api.email.hoseacodes.com/` (README:11-12)
-- `app.base-url=http://...` ([application.properties:41](src/main/resources/application.properties#L41)) — so **approval links embedded in outgoing email are `http://`**
+- `app.base-url=http://...` ([application.properties:41](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/resources/application.properties#L41)) — so **approval links embedded in outgoing email are `http://`**
 - `eb-deploy.sh` prints `http://` URLs and health-checks over `http://`
 - `[ ] SSL Cert` remains unchecked in the README's own to-do list
 
@@ -545,7 +545,7 @@ There are at least four distinct error shapes across three controllers: `SimpleE
 
 This also flatly contradicts "PRODUCTION READY" — no reviewer will accept that label on a plaintext-only service.
 
-**Affected files.** [eb-deploy.sh](eb-deploy.sh) · [application.properties:41](src/main/resources/application.properties#L41) · [README.md:11-12](README.md)
+**Affected files.** [eb-deploy.sh](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/eb-deploy.sh) · [application.properties:41](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/resources/application.properties#L41) · [README.md:11-12](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/README.md)
 
 **Recommended solution.** Switch the environment to `LoadBalanced` with an Application Load Balancer, request a free ACM certificate for `api.email.hoseacodes.com`, terminate TLS at the ALB, and redirect `:80 → :443`. Then set `app.base-url` to `https://`. This also delivers HIGH-8's health checks and a path to multi-AZ. If remaining single-instance, the honest documentation statement is that the deployment does not support TLS and is therefore not suitable for production traffic — do not claim otherwise.
 
@@ -572,7 +572,7 @@ Untested behaviour includes every item in the risk register: JWT generation and 
 
 Without CI there is also no evidence any of this is checked before a change ships — and no defensible answer to "how do you know an AI-assisted change did not break something?"
 
-**Affected files.** [EmailintegratorApplicationTests.java](src/test/java/com/hoseacodes/emailintegrator/EmailintegratorApplicationTests.java) · missing `.github/workflows/`
+**Affected files.** [EmailintegratorApplicationTests.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/test/java/com/hoseacodes/emailintegrator/EmailintegratorApplicationTests.java) · missing `.github/workflows/`
 
 **Recommended solution.** Build a real pyramid (Phase 3):
 
@@ -587,7 +587,7 @@ Without CI there is also no evidence any of this is checked before a change ship
 
 #### HIGH-9 — Caller-controlled `From` address enables sender spoofing
 
-**Issue.** [`SpringMailService.sendEmail()`](src/main/java/com/hoseacodes/emailintegrator/service/SpringMailService.java#L84-L92) honours a caller-supplied `from`:
+**Issue.** [`SpringMailService.sendEmail()`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/SpringMailService.java#L84-L92) honours a caller-supplied `from`:
 
 ```java
 String fromAddress = StringUtils.hasText(emailRequest.getFrom())
@@ -599,7 +599,7 @@ Combined with CRIT-1, an anonymous caller sets any `From` and any `replyTo` and 
 
 **Why it matters.** Gmail will reject or rewrite a `From` outside the authenticated account's permitted identities, so the practical impact is narrower than it appears — but `replyTo` is fully attacker-controlled, which is sufficient for conversation hijacking: the message displays your legitimate address while replies route to the attacker. It also means failures depend on the provider's policy rather than your own validation, which is not a control you own.
 
-**Affected files.** [SpringMailService.java:84-92,121-123](src/main/java/com/hoseacodes/emailintegrator/service/SpringMailService.java#L84-L92) · [SimpleEmailRequest.java](src/main/java/com/hoseacodes/emailintegrator/model/SimpleEmailRequest.java)
+**Affected files.** [SpringMailService.java:84-92,121-123](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/SpringMailService.java#L84-L92) · [SimpleEmailRequest.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/model/SimpleEmailRequest.java)
 
 **Recommended solution.** Do not accept `from` from callers. Set it from `EmailProperties.defaultFromAddress` server-side. If per-tenant senders are ever needed, validate against a configured allowlist bound to the authenticated caller. Validate `replyTo` as a well-formed address and consider restricting its domain.
 
@@ -613,7 +613,7 @@ Combined with CRIT-1, an anonymous caller sets any `From` and any `replyTo` and 
 
 #### MED-1 — Vault integration is inert; documentation implies otherwise
 
-`spring-cloud-starter-vault-config:4.1.1` is a compile dependency, but [`application.properties:4-5`](src/main/resources/application.properties#L4-L5) sets `spring.cloud.vault.enabled=false` with `spring.config.import=optional:vault://`, and the comment says *"Disable Vault completely."* [`VaultConfiguration`](src/main/java/com/hoseacodes/emailintegrator/config/VaultConfiguration.java) binds `example.username` / `example.password` — the property names straight from the Spring Cloud Vault getting-started guide — and nothing reads the bean.
+`spring-cloud-starter-vault-config:4.1.1` is a compile dependency, but [`application.properties:4-5`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/resources/application.properties#L4-L5) sets `spring.cloud.vault.enabled=false` with `spring.config.import=optional:vault://`, and the comment says *"Disable Vault completely."* [`VaultConfiguration`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/config/VaultConfiguration.java) binds `example.username` / `example.password` — the property names straight from the Spring Cloud Vault getting-started guide — and nothing reads the bean.
 
 The README links a "🔐 Vault Email Setup" doc, so a reviewer reasonably infers Vault-backed secret management exists. It does not; secrets come from environment variables (when they are provided at all — see CRIT-6).
 
@@ -665,7 +665,7 @@ ENTRYPOINT ["java","-jar","app.jar"]
 
 Problems: it is not self-contained (`target/*.jar` must already exist, so the image is not reproducible from source); `pom.xml` and `src` are copied in and never used, shipping source into a runtime image; `-jdk` rather than `-jre` carries the full toolchain; the process **runs as root**; no `HEALTHCHECK`; no layer caching for dependencies; no `.dockerignore`, so build context includes `target/`, `.git/`, and — critically — **`.env` and `production-secrets-backup.txt`** would be sent to the daemon and could land in a layer.
 
-Note the deploy script does *not* use this Dockerfile — it generates its own inline ([eb-deploy.sh:295-304](eb-deploy.sh)) using `17-jre`. So there are two divergent container definitions, and the better one is the generated one.
+Note the deploy script does *not* use this Dockerfile — it generates its own inline ([eb-deploy.sh:295-304](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/eb-deploy.sh)) using `17-jre`. So there are two divergent container definitions, and the better one is the generated one.
 
 **Recommended solution.** A multi-stage build: a `maven:3.9-eclipse-temurin-17` stage that resolves dependencies in a cached layer then packages, and a `eclipse-temurin:17-jre` runtime stage copying only the jar. Add a non-root `USER`, a `HEALTHCHECK` against `/actuator/health`, and a `.dockerignore` covering `target/`, `.git/`, `.env*`, `*secrets*`. Then have `eb-deploy.sh` use this Dockerfile instead of generating a second one.
 
@@ -675,7 +675,7 @@ Note the deploy script does *not* use this Dockerfile — it generates its own i
 
 #### MED-4 — `System.out.println` and `printStackTrace` in the integration layer
 
-Sixteen occurrences, all in [`BrevoEmailDelegate`](src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java) — including the credential prints in CRIT-4, `System.out.println("result")` / `"result2"` debugging residue, and `e.printStackTrace()` in three catch blocks. The class has no logger at all, while every other newer class uses SLF4J correctly.
+Sixteen occurrences, all in [`BrevoEmailDelegate`](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java) — including the credential prints in CRIT-4, `System.out.println("result")` / `"result2"` debugging residue, and `e.printStackTrace()` in three catch blocks. The class has no logger at all, while every other newer class uses SLF4J correctly.
 
 **Why it matters.** `System.out` bypasses the logging framework entirely: no level, no timestamp, no logger name, no MDC, and no way to filter it in production or route it differently per environment. `printStackTrace` writes to stderr, splitting a single failure across two streams and making correlation harder. And the debugging leftovers signal code that was never finished.
 
@@ -765,22 +765,22 @@ So a new developer following the implied workflow gets an application that start
 
 | ID | Finding | Files | Fix |
 |---|---|---|---|
-| LOW-1 | `SMSReponse` misspelled (should be `SMSResponse`) | [SMSReponse.java](src/main/java/com/hoseacodes/emailintegrator/model/SMSReponse.java) | Rename or delete with MED-9 |
-| LOW-2 | Sender domain misspelled `ambitiousconcpets.com` — will fail SPF/DKIM alignment | [BrevoEmailDelegate.java:134](src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L134) | Fix or delete with HIGH-3 |
+| LOW-1 | `SMSReponse` misspelled (should be `SMSResponse`) | [SMSReponse.java](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/model/SMSReponse.java) | Rename or delete with MED-9 |
+| LOW-2 | Sender domain misspelled `ambitiousconcpets.com` — will fail SPF/DKIM alignment | [BrevoEmailDelegate.java:134](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L134) | Fix or delete with HIGH-3 |
 | LOW-3 | Package `brevo.model.Batch` capitalised, against Java convention | `brevo/model/Batch/` | Rename to `batch` |
 | LOW-4 | Port inconsistency: `8082` (main), `8080` (test), `SERVER_PORT=8080` (EB) | properties, `eb-deploy.sh` | Standardise on 8080 |
 | LOW-5 | Field injection (`@Autowired` on fields) throughout | all services/controllers | Constructor injection — immutable, testable without reflection |
-| LOW-6 | `@Component` on `EmailDeliveryService` where `@Service` is the semantic annotation | [EmailDeliveryService.java:11](src/main/java/com/hoseacodes/emailintegrator/service/EmailDeliveryService.java#L11) | Use `@Service` |
-| LOW-7 | `catch (Exception e) { throw e; }` — a no-op catch block | [EmailDeliveryService.java:21-23](src/main/java/com/hoseacodes/emailintegrator/service/EmailDeliveryService.java#L21-L23) | Remove |
-| LOW-8 | `catch (IOError err)` — catching a JVM `Error` that `RestTemplate` never throws | [BrevoEmailDelegate.java:78](src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L78) | Remove |
-| LOW-9 | `input.getIsBatch() == true` on a `Boolean` — NPE if the field is absent from the JSON | [EmailDeliveryService.java:20](src/main/java/com/hoseacodes/emailintegrator/service/EmailDeliveryService.java#L20) | `Boolean.TRUE.equals(...)` |
-| LOW-10 | `Map.of()` throws NPE on null values; used with nullable getters in template builders | [UserApprovalEmailService.java:216](src/main/java/com/hoseacodes/emailintegrator/service/UserApprovalEmailService.java#L216) | Currently guarded by ternaries, but fragile |
+| LOW-6 | `@Component` on `EmailDeliveryService` where `@Service` is the semantic annotation | [EmailDeliveryService.java:11](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/EmailDeliveryService.java#L11) | Use `@Service` |
+| LOW-7 | `catch (Exception e) { throw e; }` — a no-op catch block | [EmailDeliveryService.java:21-23](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/EmailDeliveryService.java#L21-L23) | Remove |
+| LOW-8 | `catch (IOError err)` — catching a JVM `Error` that `RestTemplate` never throws | [BrevoEmailDelegate.java:78](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/brevo/delegate/BrevoEmailDelegate.java#L78) | Remove |
+| LOW-9 | `input.getIsBatch() == true` on a `Boolean` — NPE if the field is absent from the JSON | [EmailDeliveryService.java:20](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/EmailDeliveryService.java#L20) | `Boolean.TRUE.equals(...)` |
+| LOW-10 | `Map.of()` throws NPE on null values; used with nullable getters in template builders | [UserApprovalEmailService.java:216](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/UserApprovalEmailService.java#L216) | Currently guarded by ternaries, but fragile |
 | LOW-11 | No profiles (`application-dev`/`application-prod`); one properties file for all environments | `src/main/resources/` | Add profiles; ties to Phase 14 dev-vs-prod logging |
-| LOW-12 | Hardcoded admin recipient `info@ambitiousconcept.com` in code, bypassing the configured `adminEmail` | [UserApprovalEmailService.java:379](src/main/java/com/hoseacodes/emailintegrator/service/UserApprovalEmailService.java#L379), [UserApprovalController.java:330](src/main/java/com/hoseacodes/emailintegrator/controller/UserApprovalController.java#L330) | Use the injected property |
-| LOW-13 | Stale "Storm Gate" branding hardcoded in subjects and sender names from an earlier project | [UserApprovalEmailService.java:70-72,101-103,132-134,163-165](src/main/java/com/hoseacodes/emailintegrator/service/UserApprovalEmailService.java#L70-L72) | Drive from `appDisplayName` |
-| LOW-14 | EB `SingleInstance` — no HA, no rolling deployment, no rollback path; instance replacement drops in-flight work | [eb-deploy.sh:244-247](eb-deploy.sh) | Covered by HIGH-7 and Phase 12 |
+| LOW-12 | Hardcoded admin recipient `info@ambitiousconcept.com` in code, bypassing the configured `adminEmail` | [UserApprovalEmailService.java:379](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/UserApprovalEmailService.java#L379), [UserApprovalController.java:330](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/controller/UserApprovalController.java#L330) | Use the injected property |
+| LOW-13 | Stale "Storm Gate" branding hardcoded in subjects and sender names from an earlier project | [UserApprovalEmailService.java:70-72,101-103,132-134,163-165](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/java/com/hoseacodes/emailintegrator/service/UserApprovalEmailService.java#L70-L72) | Drive from `appDisplayName` |
+| LOW-14 | EB `SingleInstance` — no HA, no rolling deployment, no rollback path; instance replacement drops in-flight work | [eb-deploy.sh:244-247](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/eb-deploy.sh) | Covered by HIGH-7 and Phase 12 |
 | LOW-15 | No CORS configuration — undefined behaviour for browser callers | none | Decide explicitly; document if intentionally API-only |
-| LOW-16 | `management.server.port` equals `server.port`, so actuator is on the public port | [application.properties:11](src/main/resources/application.properties#L11) | Consider a separate management port |
+| LOW-16 | `management.server.port` equals `server.port`, so actuator is on the public port | [application.properties:11](https://github.com/HoseaCodes/Email-Integrator/blob/40995eb/src/main/resources/application.properties#L11) | Consider a separate management port |
 
 ---
 

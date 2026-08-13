@@ -8,7 +8,7 @@ reasonably evolve. Nothing here describes infrastructure that does not exist.
 ## Current deployment
 
 A **single-instance Elastic Beanstalk environment** running the application as a Docker container
-on one `t3.micro`, created and updated by [`eb-deploy.sh`](../eb-deploy.sh).
+on one `t3.micro`, created and updated by [`eb-deploy.sh`](https://github.com/HoseaCodes/Email-Integrator/blob/master/eb-deploy.sh).
 
 ```mermaid
 graph TD

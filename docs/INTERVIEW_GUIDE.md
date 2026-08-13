@@ -53,9 +53,9 @@ status code is. Before, `EMSBatchResponse extends EmailResponse` — Brevo's JSO
 part of this service's published API, so changing providers or even API versions would have broken
 callers.
 
-**Files.** [`EmailProvider.java`](../src/main/java/com/hoseacodes/emailintegrator/email/EmailProvider.java) ·
-[`BrevoEmailProvider.java`](../src/main/java/com/hoseacodes/emailintegrator/brevo/BrevoEmailProvider.java) ·
-[`EmailController.java`](../src/main/java/com/hoseacodes/emailintegrator/controller/EmailController.java)
+**Files.** [`EmailProvider.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/email/EmailProvider.java) ·
+[`BrevoEmailProvider.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/brevo/BrevoEmailProvider.java) ·
+[`EmailController.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/controller/EmailController.java)
 
 **Follow-ups.** *"Why an interface with one implementation?"* — see next question. *"Where does
 business logic live?"* — honestly, there is very little; this service is an integration boundary,
@@ -110,8 +110,8 @@ provider very likely processed it. So there are two failures happening at once: 
 get an answer, *and* we don't know the state of the world. The second one is the harder problem,
 and the design's response is to be explicit about the uncertainty rather than paper over it.
 
-**Files.** [`EmailProviderException.java`](../src/main/java/com/hoseacodes/emailintegrator/email/EmailProviderException.java) ·
-[`BrevoEmailProvider.java`](../src/main/java/com/hoseacodes/emailintegrator/brevo/BrevoEmailProvider.java) (`isConnectFailure`)
+**Files.** [`EmailProviderException.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/email/EmailProviderException.java) ·
+[`BrevoEmailProvider.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/brevo/BrevoEmailProvider.java) (`isConnectFailure`)
 
 **Follow-up.** *"How do you distinguish a connect timeout from a read timeout?"* — by walking the
 cause chain. `ConnectException` and `UnknownHostException` mean the connection was never
@@ -193,8 +193,8 @@ request for 429, 500, and 503 plus one asserting a 429 fails fast rather than sl
 **The lesson to state out loud:** defaults you didn't choose are still your behaviour, and for
 side-effecting operations you have to go looking for them.
 
-**Files.** [`BrevoClientConfig.java`](../src/main/java/com/hoseacodes/emailintegrator/brevo/BrevoClientConfig.java) ·
-[`BrevoEmailProviderTest.java`](../src/test/java/com/hoseacodes/emailintegrator/brevo/BrevoEmailProviderTest.java) (`NoRetries`)
+**Files.** [`BrevoClientConfig.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/brevo/BrevoClientConfig.java) ·
+[`BrevoEmailProviderTest.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/test/java/com/hoseacodes/emailintegrator/brevo/BrevoEmailProviderTest.java) (`NoRetries`)
 
 **Follow-up.** *"How would you catch this class of bug generally?"* — assert negatives, not just
 positives. "Exactly one request" is the kind of assertion that catches invisible behaviour.
@@ -274,8 +274,8 @@ administrator. That's a **capability** — a single, expiring, tamper-evident pe
 one action, handed to a human whose mail client cannot attach headers. Being able to articulate why
 those are two different mechanisms is the point.
 
-**Files.** [`SecurityConfig.java`](../src/main/java/com/hoseacodes/emailintegrator/security/SecurityConfig.java) ·
-[`ApiKeyAuthenticationFilter.java`](../src/main/java/com/hoseacodes/emailintegrator/security/ApiKeyAuthenticationFilter.java)
+**Files.** [`SecurityConfig.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/security/SecurityConfig.java) ·
+[`ApiKeyAuthenticationFilter.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/security/ApiKeyAuthenticationFilter.java)
 
 **Follow-ups.** *"Why constant-time comparison?"* — `String.equals` returns on the first differing
 character, so response time leaks how many leading characters were right; over many requests that
@@ -320,8 +320,8 @@ replacement re-scanned its own output, so a value containing `{{resetUrl}}` got 
 pass; and `Matcher.appendReplacement` treats `$1` as a group reference, so a `$` in any value could
 corrupt the output.
 
-**Files.** [`EmailTemplateService.java`](../src/main/java/com/hoseacodes/emailintegrator/service/EmailTemplateService.java) ·
-[`LinkSanitizer.java`](../src/main/java/com/hoseacodes/emailintegrator/service/LinkSanitizer.java)
+**Files.** [`EmailTemplateService.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/service/EmailTemplateService.java) ·
+[`LinkSanitizer.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/service/LinkSanitizer.java)
 
 **Follow-up.** *"How did you find it?"* — I audited my own repository before touching it and wrote
 the findings down. That document is still in the repo with a status table.
@@ -348,8 +348,8 @@ support ticket days later.
 lifetime, then drop the old. This service doesn't implement that — with a 24-hour token lifetime,
 rotating invalidates outstanding approval links, which is acceptable here and worth saying plainly.
 
-**Files.** [`JwtProperties.java`](../src/main/java/com/hoseacodes/emailintegrator/config/JwtProperties.java) ·
-[`ApprovalTokenService.java`](../src/main/java/com/hoseacodes/emailintegrator/service/ApprovalTokenService.java)
+**Files.** [`JwtProperties.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/config/JwtProperties.java) ·
+[`ApprovalTokenService.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/service/ApprovalTokenService.java)
 
 ---
 
@@ -410,8 +410,8 @@ There's a second, subtler benefit: **the DTO can omit fields on purpose.** `Emai
 `sender` field, so caller-controlled sender spoofing can't be expressed at all — the invariant is
 in the type rather than in a check somebody might delete.
 
-**Files.** [`SendEmailRequest.java`](../src/main/java/com/hoseacodes/emailintegrator/controller/dto/SendEmailRequest.java) ·
-[`EmailDraft.java`](../src/main/java/com/hoseacodes/emailintegrator/service/EmailDraft.java)
+**Files.** [`SendEmailRequest.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/controller/dto/SendEmailRequest.java) ·
+[`EmailDraft.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/service/EmailDraft.java)
 
 ---
 
@@ -431,7 +431,7 @@ becomes one `ApiError` shape with a correlation id, and no controller has a `try
   caller's credentials were fine, *ours* are wrong. Returning 401 would send them to re-authenticate
   pointlessly.
 
-**Files.** [`ApiExceptionHandler.java`](../src/main/java/com/hoseacodes/emailintegrator/controller/ApiExceptionHandler.java)
+**Files.** [`ApiExceptionHandler.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/main/java/com/hoseacodes/emailintegrator/controller/ApiExceptionHandler.java)
 
 ---
 
@@ -494,7 +494,7 @@ controller behaviour without every case needing a credential. Disabling security
 legitimate if the rules are genuinely asserted somewhere else — otherwise it's exactly the
 anti-pattern it looks like. The mutation is the evidence that "somewhere else" is real.
 
-**Files.** [`ApiKeySecurityTest.java`](../src/test/java/com/hoseacodes/emailintegrator/security/ApiKeySecurityTest.java)
+**Files.** [`ApiKeySecurityTest.java`](https://github.com/HoseaCodes/Email-Integrator/blob/master/src/test/java/com/hoseacodes/emailintegrator/security/ApiKeySecurityTest.java)
 
 ---
 
@@ -642,7 +642,7 @@ the check on everything generated.
   variable unset. The Docker changes were tested by building and running the image. The CI workflow
   was tested against a clean clone with an empty environment.
 
-**Files.** [`ENGINEERING_AUDIT.md`](ENGINEERING_AUDIT.md) · [`AGENTS.md`](../AGENTS.md)
+**Files.** [`ENGINEERING_AUDIT.md`](ENGINEERING_AUDIT.md) · [`AGENTS.md`](https://github.com/HoseaCodes/Email-Integrator/blob/master/AGENTS.md)
 
 ---
 

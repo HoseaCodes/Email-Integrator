@@ -1,0 +1,98 @@
+name: Docs
+
+# Publishes the engineering documentation and the API reference to GitHub Pages.
+#
+# The API reference is *generated from the application*, not committed: OpenApiSpecGenerationTest
+# writes target/openapi.json during `mvn verify`, and this workflow stages it into the site. That
+# is the point — a checked-in OpenAPI document drifts from the code silently, and a published
+# reference that disagrees with the running service is worse than none, because callers trust it.
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'requirements-docs.txt'
+      - 'src/main/**'          # changes the generated OpenAPI spec
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deployment at a time, and do not cancel one midway — a half-published site is worse
+# than a slightly stale one. This is the opposite choice from the build workflow, where cancelling
+# a superseded run is exactly right.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Generate the OpenAPI specification
+        # `verify` runs the full suite, so the spec is only published if the code that produced it
+        # passes its tests. OpenApiSpecGenerationTest also asserts the document is complete — that
+        # the endpoints and the security scheme are present — so a spec that silently lost its
+        # Authorize button fails here rather than being published broken.
+        #
+        # No secrets are needed: test properties supply test-only values and the integration tests
+        # run against a local WireMock server. Nothing contacts a live provider or sends mail.
+        run: ./mvnw -B --no-transfer-progress clean verify
+
+      - name: Stage the API reference
+        run: |
+          test -s target/openapi.json || { echo "::error::openapi.json was not generated"; exit 1; }
+          cp target/openapi.json docs/api/openapi.json
+          echo "Staged $(wc -c < docs/api/openapi.json) bytes of OpenAPI spec"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-docs.txt
+
+      - name: Install documentation dependencies
+        run: pip install -r requirements-docs.txt
+
+      - name: Build site
+        # --strict turns broken internal links and missing nav targets into build failures.
+        # Without it a renamed page silently becomes a 404 that nobody notices for months.
+        run: mkdocs build --strict
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+# First-time setup: Settings → Pages → Source = "GitHub Actions". Without that this workflow
+# builds successfully and the deploy step fails, which is a confusing way to discover it.

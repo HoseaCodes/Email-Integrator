@@ -1,0 +1,78 @@
+site_name: Email Integrator
+site_description: Engineering documentation for the Email Integrator service
+site_url: https://hoseacodes.github.io/Email-Integrator/
+repo_url: https://github.com/HoseaCodes/Email-Integrator
+repo_name: HoseaCodes/Email-Integrator
+edit_uri: edit/master/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle: {icon: material/weather-night, name: Switch to dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle: {icon: material/weather-sunny, name: Switch to light mode}
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc: {permalink: true}
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight: {anchor_linenums: true}
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search
+
+nav:
+  - Overview: index.md
+  - Architecture: ARCHITECTURE.md
+  - Security: SECURITY.md
+  - Reliability: RELIABILITY.md
+  - Operations: OPERATIONS.md
+  - AWS architecture: AWS_ARCHITECTURE.md
+  - API reference: api/index.html
+  - Decision records:
+      - Overview: adr/README.md
+      - 0001 · HTTP client over vendor SDK: adr/0001-brevo-http-client-over-vendor-sdk.md
+      - 0002 · No automatic retries: adr/0002-no-automatic-retries-on-email-send.md
+  - Roadmap: ROADMAP.md
+
+# Built and published, but kept out of the sidebar.
+#
+# The audit is a point-in-time snapshot rather than current documentation, and reading it as a
+# description of the code would be misleading — it is linked from the pages that give it context.
+# The interview guide is preparation notes for me, not reference material for a reader.
+not_in_nav: |
+  ENGINEERING_AUDIT.md
+  INTERVIEW_GUIDE.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/HoseaCodes/Email-Integrator
