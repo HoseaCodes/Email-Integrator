@@ -378,6 +378,8 @@ Honest list. These are why this is not described as production-ready.
 - [ADR 0001 — HTTP client over vendor SDK](docs/adr/0001-brevo-http-client-over-vendor-sdk.md)
 - [ADR 0002 — No automatic retries](docs/adr/0002-no-automatic-retries-on-email-send.md)
 - [Reliability](docs/RELIABILITY.md) — timeouts, retry semantics, idempotency, failure modes
+- [Roadmap](docs/ROADMAP.md) — what is left, in value order, and what is deliberately not planned
+- [Agent instructions](AGENTS.md) — rules for AI-assisted changes to this repository
 - [AWS architecture](docs/AWS_ARCHITECTURE.md) — what is deployed and how it could evolve
 
 ---

@@ -7,7 +7,8 @@ import com.hoseacodes.emailintegrator.email.EmailProviderException.Reason;
 import com.hoseacodes.emailintegrator.email.MessageVariant;
 import com.hoseacodes.emailintegrator.email.SendEmailCommand;
 import com.hoseacodes.emailintegrator.email.SendEmailResult;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -52,19 +53,37 @@ class BrevoEmailProviderTest {
     private static final String SEND_PATH = "/v3/smtp/email";
     private static final String API_KEY = "test-api-key-not-a-real-credential";
 
-    private WireMockServer wireMock;
+    /**
+     * One server for the whole class, reset between tests.
+     *
+     * <p>Started per-test originally, which was intermittently flaky: stopping and restarting on a
+     * fresh dynamic port every test churns ports fast enough that a connection can occasionally be
+     * refused before the new server is accepting, producing a failure with an empty request
+     * journal. It surfaced once in a run that changed only documentation — which is exactly how a
+     * flaky test erodes trust in a suite, because the first instinct is to blame the change.
+     *
+     * <p>{@code resetAll()} clears both stubs and the request journal, so tests stay isolated
+     * without paying for a server lifecycle each time.
+     */
+    private static WireMockServer wireMock;
+
     private BrevoEmailProvider provider;
 
-    @BeforeEach
-    void startServer() {
+    @BeforeAll
+    static void startServer() {
         wireMock = new WireMockServer(options().dynamicPort());
         wireMock.start();
-        provider = providerWith(wireMock.baseUrl(), Duration.ofSeconds(2), Duration.ofSeconds(2));
     }
 
-    @AfterEach
-    void stopServer() {
+    @AfterAll
+    static void stopServer() {
         wireMock.stop();
+    }
+
+    @BeforeEach
+    void resetServer() {
+        wireMock.resetAll();
+        provider = providerWith(wireMock.baseUrl(), Duration.ofSeconds(2), Duration.ofSeconds(2));
     }
 
     /** Builds the provider exactly as Spring does, so the real timeout configuration is covered too. */
