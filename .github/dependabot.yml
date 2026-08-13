@@ -1,0 +1,43 @@
+version: 2
+
+# Keeps dependency updates arriving as reviewable pull requests rather than as a once-a-year
+# audit. This repository is currently on Spring Boot 3.2.5, which is past its free OSS support
+# window (ENGINEERING_AUDIT MED-2) — exactly the drift this is meant to prevent recurring.
+#
+# Grouped and capped on purpose. Ungrouped Dependabot on a Spring Boot project produces a stream
+# of individual bumps that nobody reads, and unread pull requests are worse than none: they
+# create the appearance of maintenance without the substance.
+
+updates:
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Spring Boot's parent POM manages most transitive versions, so these move together and are
+      # only meaningful reviewed together.
+      spring-boot:
+        patterns:
+          - "org.springframework.boot:*"
+          - "org.springframework:*"
+          - "org.springframework.security:*"
+      test-dependencies:
+        patterns:
+          - "org.wiremock:*"
+          - "org.mockito:*"
+          - "org.assertj:*"
+          - "org.junit*"
+    commit-message:
+      prefix: "build"
+      include: scope
+
+  # The workflow pins actions by major version; this keeps those current, including security
+  # fixes to the actions themselves.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "ci"

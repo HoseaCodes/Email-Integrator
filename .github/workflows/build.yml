@@ -1,0 +1,73 @@
+name: Build
+
+# Runs on every pull request and on pushes to the default branch. The point is that a change
+# cannot reach master without the full suite having passed on a clean machine — including the
+# provider failure-mode tests, which are the ones most likely to be skipped locally because they
+# are the slowest to reason about.
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  # Allows a manual run from the Actions tab, useful for confirming the workflow itself.
+  workflow_dispatch:
+
+# A new push to the same branch cancels the previous run rather than queueing behind it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          # Matches <java.version>17</java.version> in pom.xml. Temurin is the same distribution
+          # used by the Dockerfile's base image, so CI compiles against the runtime we deploy on.
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build, test and package
+        # `verify` runs the full lifecycle through packaging, so a change that compiles and
+        # passes tests but breaks the executable jar still fails here rather than at deploy time.
+        #
+        # No secrets are needed or provided: src/test/resources/application.properties supplies
+        # test-only values, and the integration tests run against a local WireMock server. Nothing
+        # in this suite contacts a live email provider or sends real mail — which is also why this
+        # workflow is safe to run on pull requests from forks.
+        run: ./mvnw -B --no-transfer-progress clean verify
+
+      - name: Upload test reports
+        # Runs even when the build fails — that is precisely when the reports are wanted.
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+# Deliberately not included:
+#
+#   Dependency vulnerability scanning. OWASP dependency-check needs the full NVD feed, which makes
+#   it slow and prone to failing for reasons unrelated to the change under review. Dependabot
+#   (.github/dependabot.yml) raises upgrade pull requests instead, which is the part that actually
+#   gets acted on. See docs/ENGINEERING_AUDIT.md MED-2.
+#
+#   Secret scanning. GitHub's native push protection and secret scanning cover this repository, so
+#   a third-party action in CI would duplicate it and only catch problems after the push.
+#
+# A green run here means the code compiles, the tests pass, and the jar builds. It does not mean
+# the application is secure — no scanner in any pipeline can establish that.

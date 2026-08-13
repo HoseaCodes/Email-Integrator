@@ -1,0 +1,44 @@
+# Everything here is excluded from the Docker build context.
+#
+# The first block is the reason this file exists. Without it, `docker build .` uploads the entire
+# working directory to the daemon — including .env and production-secrets-backup.txt, which hold
+# live credentials. Anything in the build context can be baked into a layer by a stray COPY, and
+# layers are trivially inspectable in a published image. See docs/ENGINEERING_AUDIT.md MED-3.
+
+# --- secrets: never in a build context, never in a layer ---
+.env
+.env.*
+!.env.example
+*secrets*
+*.pem
+*.key
+
+# --- build output: rebuilt inside the image, and stale copies cause confusing results ---
+target/
+bin/
+!target/*.jar
+
+# --- version control and CI ---
+.git/
+.github/
+.gitignore
+
+# --- IDE and OS noise ---
+.idea/
+.vscode/
+.settings/
+.classpath
+.project
+*.iml
+.DS_Store
+
+# --- docs: not needed at runtime, and excluding them keeps the context small ---
+docs/
+*.md
+!README.md
+
+# --- local artefacts ---
+*.log
+eb-deploy-*/
+eb-deploy-*.zip
+eb-options.json
