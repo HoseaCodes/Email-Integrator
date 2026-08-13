@@ -13,10 +13,11 @@
 *.pem
 *.key
 
-# --- build output: rebuilt inside the image, and stale copies cause confusing results ---
+# --- build output: the image builds from source in its own stage, so host artefacts must not
+#     leak in. A stale target/ jar sneaking into the context is exactly how an image ends up
+#     shipping code that is not what the source says. ---
 target/
 bin/
-!target/*.jar
 
 # --- version control and CI ---
 .git/

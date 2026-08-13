@@ -163,7 +163,7 @@ side-effect-possible failure risks a duplicate message. Full reasoning, includin
 storm makes a struggling provider worse, is in
 [ADR 0002](docs/adr/0002-no-automatic-retries-on-email-send.md).
 
-**No idempotency mechanism.** Documented as a known gap, not solved.
+**No idempotency mechanism.** Documented as a known gap, not solved — including the strategies that would solve it and why a version that is correct on one instance and silently wrong on two was not built. See [docs/RELIABILITY.md](docs/RELIABILITY.md).
 
 ---
 
@@ -369,8 +369,6 @@ Honest list. These are why this is not described as production-ready.
   trigger an approval. Fixing this needs single-use tokens, which needs server-side token state.
 - **Spring Boot 3.2.5 is past its OSS support window**, and no dependency scanning runs.
 - **API keys are compared against plaintext configuration values**, not hashes.
-- **The Dockerfile is not hardened** — runs as root, uses a JDK rather than a JRE base, no
-  multi-stage build, and requires a prior host-side `package`.
 - **Templating is hand-rolled**, not Thymeleaf. Escaping is applied deliberately at each
   substitution rather than by default from the engine.
 
@@ -379,6 +377,7 @@ Honest list. These are why this is not described as production-ready.
 - [Engineering audit](docs/ENGINEERING_AUDIT.md) — findings, severities, and current state
 - [ADR 0001 — HTTP client over vendor SDK](docs/adr/0001-brevo-http-client-over-vendor-sdk.md)
 - [ADR 0002 — No automatic retries](docs/adr/0002-no-automatic-retries-on-email-send.md)
+- [Reliability](docs/RELIABILITY.md) — timeouts, retry semantics, idempotency, failure modes
 - [AWS architecture](docs/AWS_ARCHITECTURE.md) — what is deployed and how it could evolve
 
 ---

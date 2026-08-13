@@ -406,16 +406,33 @@ create_application_version() {
     cp "$jar_file" "$deploy_dir/app.jar"
     
     # Create simple Dockerfile for EB
-    cat > "$deploy_dir/Dockerfile" << EOF
+    # Deliberately not the repository's Dockerfile.
+    #
+    # That one builds from source in a Maven stage, which is right for local use and CI. Here the
+    # jar is already built and only it is uploaded, so this bundle stays small and the deploy does
+    # not re-resolve the dependency tree on the instance. The runtime hardening is kept in step
+    # with the repository Dockerfile: same JRE base, non-root user, exec-form entrypoint.
+    cat > "$deploy_dir/Dockerfile" << 'EOF'
 FROM eclipse-temurin:17-jre
+
+# Non-root. An RCE in the application should not start with control of the container.
+RUN groupadd --system --gid 10001 appuser \
+ && useradd --system --uid 10001 --gid appuser --home-dir /app --shell /usr/sbin/nologin appuser
 
 WORKDIR /app
 
-COPY app.jar /app/
+COPY --chown=appuser:appuser app.jar /app/app.jar
+
+USER appuser
 
 EXPOSE 8080
 
-CMD ["java", "-jar", "/app/app.jar"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD curl --fail --silent http://127.0.0.1:8080/actuator/health || exit 1
+
+# exec form so the JVM is PID 1 and receives SIGTERM directly, giving Spring a chance to shut
+# down cleanly instead of being SIGKILLed after the stop timeout.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
 EOF
     
     # Create deployment ZIP

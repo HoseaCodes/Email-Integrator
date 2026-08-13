@@ -33,7 +33,7 @@ Everything below this section describes the repository **as audited**, not as it
 | HIGH-9 | Caller-controlled `From` enables spoofing | **Fixed** — neither send path accepts a caller-supplied sender; both take it from configuration |
 | MED-2 | Stale dependencies, build tooling on the runtime classpath | **Partially fixed** — the Maven 2.0.6 subtree is gone with the SDK; Spring Boot is still 3.2.5 and nothing scans dependencies |
 | MED-5 | Weak operational diagnostics | **Partially fixed** — the fake `/api/spring-mail/health` is removed; no metrics or real `HealthIndicator` yet |
-| MED-3 | Dockerfile not production-shaped | **Partially fixed** — `.dockerignore` added, which stops `.env` and the secrets file entering the build context. The image still runs as root on a JDK base with no multi-stage build |
+| MED-3 | Dockerfile not production-shaped | **Fixed** — multi-stage build from source, JRE runtime, non-root user, cached dependency layer, `HEALTHCHECK`, exec-form entrypoint, and `.dockerignore` keeping secrets out of the build context. Verified by building and running the image |
 | MED-9 | Dead and duplicated code | **Mostly fixed** — SMS path, unused DTOs, and `isTokenExpired` removed |
 | MED-6 | State-changing side effects on GET | **Open** — `GET /auth/approve` and `/auth/deny` still mutate and send. Needs single-use tokens, which needs server-side token state |
 | LOW-12 | Hardcoded admin recipient bypassing configuration | **Fixed** — both call sites now use `app.admin-email`, and refuse to send if it is unset |
