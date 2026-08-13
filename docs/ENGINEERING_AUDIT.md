@@ -22,17 +22,18 @@ Everything below this section describes the repository **as audited**, not as it
 | CRIT-4 | API key written to standard output | **Fixed** — `ac68a2a` |
 | CRIT-5 | Live Gmail app password in the working tree | **Open — requires manual action.** The credential must be rotated in the Google Account console and `production-secrets-backup.txt` deleted. No commit can do this. |
 | CRIT-6 | JWT signing key defaults to a published value | **Fixed** — `2b8b626` |
-| HIGH-1 | No timeout on any outbound call | **Fixed** (Brevo path) — `ac68a2a` |
+| HIGH-1 | No timeout on any outbound call | **Fixed** — Brevo in `ac68a2a`, SMTP connect/read/write timeouts added later |
 | HIGH-2 | README claims unsupported by the code | **Fixed** — `9c0d623` |
 | HIGH-3 | `POST /email` non-functional demo code | **Fixed** — `ac68a2a` |
 | HIGH-4 | HTML injection in email templates | **Fixed** — `e502ff4` |
-| HIGH-5 | No input validation | **Partially fixed** — `/email` only; the Gmail endpoints still take `Map` bodies |
+| HIGH-5 | No input validation | **Partially fixed** — `/email` and `/api/spring-mail/send` use typed, validated DTOs; `/auth/**` still takes `Map` bodies |
 | HIGH-6 | No centralized exception handling | **Fixed** — `ac68a2a` |
 | HIGH-7 | No TLS | **Open** — decision recorded in [AWS_ARCHITECTURE.md](AWS_ARCHITECTURE.md); not implemented |
-| HIGH-8 | Effectively no tests, no CI | **Partially fixed** — 1 test → 122; **CI still does not exist** |
-| HIGH-9 | Caller-controlled `From` enables spoofing | **Partially fixed** — `/email` cannot set a sender; `SpringMailService` still can |
+| HIGH-8 | Effectively no tests, no CI | **Fixed** — 1 test → 131, plus a GitHub Actions workflow running the full suite on every PR and push, and Dependabot. No vulnerability scanner runs; see MED-2 |
+| HIGH-9 | Caller-controlled `From` enables spoofing | **Fixed** — neither send path accepts a caller-supplied sender; both take it from configuration |
 | MED-2 | Stale dependencies, build tooling on the runtime classpath | **Partially fixed** — the Maven 2.0.6 subtree is gone with the SDK; Spring Boot is still 3.2.5 and nothing scans dependencies |
 | MED-5 | Weak operational diagnostics | **Partially fixed** — the fake `/api/spring-mail/health` is removed; no metrics or real `HealthIndicator` yet |
+| MED-3 | Dockerfile not production-shaped | **Partially fixed** — `.dockerignore` added, which stops `.env` and the secrets file entering the build context. The image still runs as root on a JDK base with no multi-stage build |
 | MED-9 | Dead and duplicated code | **Mostly fixed** — SMS path, unused DTOs, and `isTokenExpired` removed |
 | MED-10 | `.env` present but unreadable by Spring; no `.env.example` | **Fixed** — `280bb20` |
 

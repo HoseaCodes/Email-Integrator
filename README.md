@@ -1,5 +1,7 @@
 # Email Integrator
 
+[![Build](https://github.com/HoseaCodes/Email-Integrator/actions/workflows/build.yml/badge.svg)](https://github.com/HoseaCodes/Email-Integrator/actions/workflows/build.yml)
+
 A Spring Boot service that sends transactional email through an external provider and through
 Gmail SMTP, built to explore the parts of integration work that are easy to skip: what happens
 when the provider is slow, when it returns 429, when it accepts your request and then the
@@ -50,13 +52,14 @@ Implemented and covered by tests:
 | **Output encoding** | Context-aware escaping for email templates; scheme and host allowlists for caller-supplied links |
 | **JWT** | Signed, expiring approval links with issuer and token-type validation, and a signing key that must be configured or the app refuses to start |
 | **API design** | One error contract across every endpoint, correlation ids, no stack traces or provider detail in responses |
-| **Testing** | 122 tests, including provider failure simulation against a real HTTP server (WireMock) |
+| **Testing** | 131 tests, including provider failure simulation against a real HTTP server (WireMock) |
 | **Observability** | Actuator health/info, structured SLF4J logging that never records keys, tokens, or message bodies |
 | **Docker / AWS** | Dockerfile and a scripted Elastic Beanstalk deployment that provisions secrets as environment properties |
+| **CI** | GitHub Actions runs the full suite on every pull request and push to `master`; Dependabot raises grouped upgrade PRs |
 | **Documentation** | Audit, ADRs, and this README kept consistent with the code |
 
-Not implemented — see [Known Limitations](#known-limitations): CI, TLS, idempotency, rate
-limiting, application metrics.
+Not implemented — see [Known Limitations](#known-limitations): TLS, idempotency, rate limiting,
+application metrics, dependency vulnerability scanning.
 
 ---
 
@@ -188,7 +191,7 @@ Full findings and remaining gaps: [docs/ENGINEERING_AUDIT.md](docs/ENGINEERING_A
 
 ## Testing
 
-122 tests. The emphasis is on failure paths, because the happy path is exercised by hand
+131 tests. The emphasis is on failure paths, because the happy path is exercised by hand
 constantly and the 429-at-3am path is exercised exactly once, in production, unless it is tested.
 
 | Layer | What it proves |
@@ -290,7 +293,7 @@ docker run --env-file .env -p 8082:8082 hoseacodes-emailintegrator
 ### Tests
 
 ```bash
-./mvnw clean verify          # all 122
+./mvnw clean verify          # all 131
 ./mvnw test -Dtest=BrevoEmailProviderTest   # provider failure modes
 ```
 
@@ -313,7 +316,7 @@ declared, so Swagger UI's **Authorize** button works.
 | `POST` | `/email` | API key | Send via Brevo. Typed, validated, returns 202 |
 | `POST` | `/auth/send-email` | API key | Templated Gmail send |
 | `POST` | `/auth/manual-approve` · `/auth/manual-deny` | API key | Administrative |
-| `POST` | `/api/spring-mail/send` · `/send-simple` | API key | Direct Gmail SMTP |
+| `POST` | `/api/spring-mail/send` | API key | Direct Gmail SMTP |
 | `GET` | `/auth/approve` · `/auth/deny` | Signed JWT | Clicked from an email |
 | `GET` | `/actuator/health` | none | Platform probe |
 | `GET` | `/actuator/info` | API key | |
@@ -352,15 +355,19 @@ CloudFront rather than an ALB — is in [docs/AWS_ARCHITECTURE.md](docs/AWS_ARCH
 
 Honest list. These are why this is not described as production-ready.
 
-- **No CI.** There is no GitHub Actions workflow. Tests pass locally and must be run manually.
 - **No TLS in the deployment.** Single-instance Elastic Beanstalk cannot terminate HTTPS.
+- **No dependency vulnerability scanning.** Dependabot raises upgrade PRs, but nothing in CI
+  fails a build on a known CVE. A green build means it compiles and the tests pass — nothing more.
+- **The build requires JDK 17–22.** Byte Buddy, pulled in by Mockito via Spring Boot 3.2.5, does
+  not support newer JDKs, so the test suite fails on JDK 23+. CI pins 17. This is a symptom of the
+  Spring Boot version being past its support window, not a deliberate constraint.
 - **No idempotency.** A client retry or a duplicate submission sends a second email. The
   `deliveryUncertain` flag tells a caller when this risk applies, but nothing prevents it.
 - **No rate limiting.** An authenticated client can send until the provider's quota is exhausted.
   Do not expose this to untrusted clients.
-- **The Gmail path lags the Brevo path.** `/api/spring-mail/**` and parts of `/auth/**` still use
-  `Map` request bodies without Bean Validation, and `SpringMailService` still accepts a
-  caller-supplied `from`. The Brevo path shows the intended pattern.
+- **`/auth/**` still lags.** `POST /auth/send-email`, `/auth/manual-approve` and
+  `/auth/manual-deny` still take untyped `Map` request bodies with hand-rolled null checks instead
+  of Bean Validation. `POST /email` and `POST /api/spring-mail/send` show the intended pattern.
 - **`GET /auth/approve` and `/auth/deny` change state.** A mail client's link prefetcher can
   trigger an approval. Fixing this needs single-use tokens, which needs server-side state.
 - **Spring Boot 3.2.5 is past its OSS support window**, and no dependency scanning runs.

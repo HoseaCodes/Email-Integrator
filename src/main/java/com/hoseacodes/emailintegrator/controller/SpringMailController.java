@@ -1,85 +1,58 @@
 package com.hoseacodes.emailintegrator.controller;
 
-import com.hoseacodes.emailintegrator.model.SimpleEmailRequest;
-import com.hoseacodes.emailintegrator.model.SimpleEmailResponse;
+import com.hoseacodes.emailintegrator.controller.dto.SendEmailResponse;
+import com.hoseacodes.emailintegrator.controller.dto.SendMailRequest;
+import com.hoseacodes.emailintegrator.email.SendEmailResult;
 import com.hoseacodes.emailintegrator.service.SpringMailService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
-
+/**
+ * Direct SMTP sending, for messages that do not go through the external provider.
+ *
+ * <p>Matches {@link EmailController}: validate, delegate, translate. No {@code try/catch} — the
+ * previous version wrapped every method in one and returned {@code "Internal server error: " +
+ * e.getMessage()}, which produced a different error shape from every other endpoint and leaked
+ * SMTP hostnames and server rejection text to callers. Failures are now translated by
+ * {@link ApiExceptionHandler}.
+ *
+ * <p>{@code POST /send-simple} was removed. It took an untyped {@code Map<String,String>} and did
+ * a strict subset of what this endpoint does, so it offered a second, unvalidated, undocumented
+ * way to do the same thing. Two overlapping endpoints on one resource is a contract to maintain
+ * forever in exchange for nothing.
+ */
 @RestController
 @RequestMapping("/api/spring-mail")
 public class SpringMailController {
-    
-    private static final Logger logger = LoggerFactory.getLogger(SpringMailController.class);
-    
-    @Autowired
-    private SpringMailService springMailService;
-    
-    /**
-     * Send a simple text email
-     * POST /api/spring-mail/send-simple
-     */
-    @PostMapping("/send-simple")
-    public ResponseEntity<SimpleEmailResponse> sendSimpleEmail(@RequestBody Map<String, String> request) {
-        try {
-            String to = request.get("to");
-            String subject = request.get("subject");
-            String text = request.get("text");
-            
-            if (to == null || subject == null || text == null) {
-                SimpleEmailResponse errorResponse = new SimpleEmailResponse(false, 
-                    "Missing required fields: to, subject, text");
-                return ResponseEntity.badRequest().body(errorResponse);
-            }
-            
-            SimpleEmailResponse response = springMailService.sendSimpleEmail(to, subject, text);
-            
-            if (response.isSuccess()) {
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            }
-            
-        } catch (Exception e) {
-            logger.error("Error in sendSimpleEmail endpoint: {}", e.getMessage(), e);
-            SimpleEmailResponse errorResponse = new SimpleEmailResponse(false, 
-                "Internal server error: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+
+    private final SpringMailService springMailService;
+
+    public SpringMailController(SpringMailService springMailService) {
+        this.springMailService = springMailService;
     }
-    
+
     /**
-     * Send an email with full options (HTML, CC, BCC, etc.)
-     * POST /api/spring-mail/send
+     * Sends an email over SMTP.
+     *
+     * <p>Returns <b>202 Accepted</b>, consistent with {@code POST /email}. The mail server has
+     * accepted the message for delivery; it has not necessarily reached a mailbox, and it can
+     * still bounce afterwards.
+     *
+     * @return the SMTP {@code Message-ID}, which is what appears in mail server logs and in the
+     *         recipient's headers — so it is the id worth keeping to trace a message later
      */
-    @PostMapping("/send")
-    public ResponseEntity<SimpleEmailResponse> sendEmail(@RequestBody SimpleEmailRequest emailRequest) {
-        try {
-            SimpleEmailResponse response = springMailService.sendEmail(emailRequest);
-            
-            if (response.isSuccess()) {
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            }
-            
-        } catch (Exception e) {
-            logger.error("Error in sendEmail endpoint: {}", e.getMessage(), e);
-            SimpleEmailResponse errorResponse = new SimpleEmailResponse(false, 
-                "Internal server error: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+    @PostMapping(path = "/send",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public SendEmailResponse sendEmail(@Valid @RequestBody SendMailRequest request) {
+        SendEmailResult result = springMailService.send(request);
+        return new SendEmailResponse(result.messageIds(), result.provider());
     }
-    
-    // Removed: GET /api/spring-mail/health, which returned a hardcoded {"status":"UP"}.
-    // A health check that cannot fail is worse than none — it can only ever produce false
-    // confidence, and it reported healthy regardless of whether SMTP was reachable. Use
-    // /actuator/health instead, and see ENGINEERING_AUDIT MED-5 for the real gap: there is
-    // still no HealthIndicator that actually probes the mail dependency.
 }
