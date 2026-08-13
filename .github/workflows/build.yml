@@ -52,7 +52,7 @@ jobs:
       - name: Upload test reports
         # Runs even when the build fails — that is precisely when the reports are wanted.
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: surefire-reports
           path: target/surefire-reports/
