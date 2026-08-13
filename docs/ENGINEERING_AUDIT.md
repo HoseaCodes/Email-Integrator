@@ -26,8 +26,8 @@ Everything below this section describes the repository **as audited**, not as it
 | HIGH-2 | README claims unsupported by the code | **Fixed** — `9c0d623` |
 | HIGH-3 | `POST /email` non-functional demo code | **Fixed** — `ac68a2a` |
 | HIGH-4 | HTML injection in email templates | **Fixed** — `e502ff4` |
-| HIGH-5 | No input validation | **Partially fixed** — `/email` and `/api/spring-mail/send` use typed, validated DTOs; `/auth/**` still takes `Map` bodies |
-| HIGH-6 | No centralized exception handling | **Fixed** — `ac68a2a` |
+| HIGH-5 | No input validation | **Fixed** — every request body is a typed record with Bean Validation. `/auth/send-email` uses a sealed discriminated type so each `templateType` declares its own required fields |
+| HIGH-6 | No centralized exception handling | **Fixed** — `ac68a2a`; the last per-controller `try/catch` blocks removed with the `/auth/**` rewrite |
 | HIGH-7 | No TLS | **Open** — decision recorded in [AWS_ARCHITECTURE.md](AWS_ARCHITECTURE.md); not implemented |
 | HIGH-8 | Effectively no tests, no CI | **Fixed** — 1 test → 131, plus a GitHub Actions workflow running the full suite on every PR and push, and Dependabot. No vulnerability scanner runs; see MED-2 |
 | HIGH-9 | Caller-controlled `From` enables spoofing | **Fixed** — neither send path accepts a caller-supplied sender; both take it from configuration |
@@ -35,6 +35,9 @@ Everything below this section describes the repository **as audited**, not as it
 | MED-5 | Weak operational diagnostics | **Partially fixed** — the fake `/api/spring-mail/health` is removed; no metrics or real `HealthIndicator` yet |
 | MED-3 | Dockerfile not production-shaped | **Partially fixed** — `.dockerignore` added, which stops `.env` and the secrets file entering the build context. The image still runs as root on a JDK base with no multi-stage build |
 | MED-9 | Dead and duplicated code | **Mostly fixed** — SMS path, unused DTOs, and `isTokenExpired` removed |
+| MED-6 | State-changing side effects on GET | **Open** — `GET /auth/approve` and `/auth/deny` still mutate and send. Needs single-use tokens, which needs server-side token state |
+| LOW-12 | Hardcoded admin recipient bypassing configuration | **Fixed** — both call sites now use `app.admin-email`, and refuse to send if it is unset |
+| LOW-13 | Stale "Storm Gate" branding in subjects and sender names | **Fixed** — driven from `app.name` / `app.display-name`, overridable per request |
 | MED-10 | `.env` present but unreadable by Spring; no `.env.example` | **Fixed** — `280bb20` |
 
 A newly discovered defect not in the original audit: **Apache HttpClient 5 was silently retrying non-idempotent email sends**, arriving transitively through Spring Cloud Vault. Found by a test that hung; recorded in [ADR 0002](adr/0002-no-automatic-retries-on-email-send.md).

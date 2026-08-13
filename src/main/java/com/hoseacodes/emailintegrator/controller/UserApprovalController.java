@@ -1,375 +1,155 @@
 package com.hoseacodes.emailintegrator.controller;
 
-import com.hoseacodes.emailintegrator.model.UserData;
-import com.hoseacodes.emailintegrator.model.ConsultationData;
+import com.hoseacodes.emailintegrator.controller.dto.ManualDecisionRequest;
+import com.hoseacodes.emailintegrator.controller.dto.SendEmailResponse;
+import com.hoseacodes.emailintegrator.controller.dto.TemplatedEmailRequest;
+import com.hoseacodes.emailintegrator.controller.dto.UserDecisionResponse;
+import com.hoseacodes.emailintegrator.email.SendEmailResult;
 import com.hoseacodes.emailintegrator.service.ApprovalTokenService;
 import com.hoseacodes.emailintegrator.service.UserApprovalEmailService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
+/**
+ * Registration approval workflow.
+ *
+ * <p>Reduced from 375 lines to translation. What left: roughly 140 lines of
+ * {@code Map<String,Object>} casting and null-checking (now declarative validation on
+ * {@link TemplatedEmailRequest}), a nested {@code switch} on {@code templateType} (now an
+ * exhaustive dispatch in the service, checked by the compiler), and a {@code try/catch} in every
+ * method that produced a different error shape each time (now {@link ApiExceptionHandler}).
+ *
+ * <h2>Two authentication models, on purpose</h2>
+ * The {@code POST} endpoints require an API key like every other endpoint. The {@code GET}
+ * approve and deny endpoints do not, because they are links clicked from an email client that
+ * cannot attach headers — the signed JWT in the query string is their credential, verified by
+ * {@link ApprovalTokenService}. See {@code SecurityConfig}.
+ *
+ * <h2>Known limitation: side effects on GET</h2>
+ * {@code GET /auth/approve} and {@code /auth/deny} change state and send mail, which {@code GET}
+ * is not supposed to do. A mail client's link prefetcher can therefore trigger an approval nobody
+ * clicked. Fixing it properly needs single-use tokens, which needs server-side token state — a
+ * design decision deliberately not taken here. Recorded in ENGINEERING_AUDIT MED-6 rather than
+ * quietly left.
+ */
 @RestController
 @RequestMapping("/auth")
 public class UserApprovalController {
-    
-    private static final Logger logger = LoggerFactory.getLogger(UserApprovalController.class);
-    
-    @Autowired
-    private ApprovalTokenService approvalTokenService;
-    
-    @Autowired
-    private UserApprovalEmailService userApprovalEmailService;
-    
-    /**
-     * Approve user account
-     * GET /auth/approve?token=...
-     */
-    @GetMapping("/approve")
-    public ResponseEntity<Map<String, Object>> approveUser(@RequestParam String token) {
-        try {
-            if (token == null || token.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Token is required"));
-            }
-            
-            Map<String, Object> userData = approvalTokenService.verifyApprovalTokenWithClaims(token);
-            if (userData == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Invalid or expired token"));
-            }
-            
-            String userEmail = (String) userData.get("email");
-            String userName = (String) userData.get("name");
-            
-            if (userEmail == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Invalid token data"));
-            }
-            
-            // Here you would typically update the user status in your database
-            // For now, we'll simulate this step
-            logger.info("User approved: {}", userEmail);
-            
-            // Send approval notification to user
-            UserData user = new UserData(userEmail, userName != null ? userName : "User");
-            boolean emailSent = userApprovalEmailService.sendAccountApprovedEmail(user);
-            
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "User account has been approved successfully",
-                "emailSent", emailSent,
-                "user", Map.of(
-                    "email", userEmail,
-                    "name", userName != null ? userName : "User",
-                    "status", "APPROVED"
-                )
-            ));
-            
-        } catch (Exception e) {
-            logger.error("Error in approval route:", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Internal server error"));
-        }
+
+    private static final Logger log = LoggerFactory.getLogger(UserApprovalController.class);
+
+    private final ApprovalTokenService approvalTokenService;
+    private final UserApprovalEmailService userApprovalEmailService;
+
+    public UserApprovalController(ApprovalTokenService approvalTokenService,
+                                  UserApprovalEmailService userApprovalEmailService) {
+        this.approvalTokenService = approvalTokenService;
+        this.userApprovalEmailService = userApprovalEmailService;
     }
-    
+
     /**
-     * Deny user account
-     * GET /auth/deny?token=...
+     * Sends a templated email.
+     *
+     * <p>The body is discriminated by {@code templateType}; each type declares its own required
+     * fields. An unrecognised value is rejected before any object is built.
      */
-    @GetMapping("/deny")
-    public ResponseEntity<Map<String, Object>> denyUser(@RequestParam String token) {
-        try {
-            if (token == null || token.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Token is required"));
-            }
-            
-            Map<String, Object> userData = approvalTokenService.verifyApprovalTokenWithClaims(token);
-            if (userData == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Invalid or expired token"));
-            }
-            
-            String userEmail = (String) userData.get("email");
-            String userName = (String) userData.get("name");
-            
-            if (userEmail == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Invalid token data"));
-            }
-            
-            // Here you would typically update the user status in your database
-            logger.info("User denied: {}", userEmail);
-            
-            // Send denial notification to user
-            UserData user = new UserData(userEmail, userName != null ? userName : "User");
-            boolean emailSent = userApprovalEmailService.sendAccountDeniedEmail(user);
-            
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "User account has been denied",
-                "emailSent", emailSent,
-                "user", Map.of(
-                    "email", userEmail,
-                    "name", userName != null ? userName : "User",
-                    "status", "DENIED"
-                )
-            ));
-            
-        } catch (Exception e) {
-            logger.error("Error in deny route:", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Internal server error"));
-        }
+    @PostMapping(path = "/send-email",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public SendEmailResponse sendTemplatedEmail(@Valid @RequestBody TemplatedEmailRequest request) {
+        log.info("Sending '{}' email", request.templateType());
+        SendEmailResult result = userApprovalEmailService.send(request);
+        return new SendEmailResponse(result.messageIds(), result.provider());
     }
-    
-    /**
-     * Manually approve user by admin
-     * POST /auth/manual-approve
-     */
-    @PostMapping("/manual-approve")
-    public ResponseEntity<Map<String, Object>> manuallyApproveUser(@RequestBody Map<String, String> request) {
-        try {
-            String userEmail = request.get("email");
-            String userName = request.get("name");
-            
-            if (userEmail == null || userEmail.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
-            }
-            
-            // Here you would typically update the user status in your database
-            logger.info("User manually approved: {}", userEmail);
-            
-            // Send approval notification to user
-            UserData user = new UserData(userEmail, userName != null ? userName : "User");
-            boolean emailSent = userApprovalEmailService.sendAccountApprovedEmail(user);
-            
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "User approved successfully",
-                "emailSent", emailSent,
-                "user", Map.of(
-                    "email", userEmail,
-                    "name", userName != null ? userName : "User",
-                    "status", "APPROVED"
-                )
-            ));
-            
-        } catch (Exception e) {
-            logger.error("Error in manual approval:", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Internal server error"));
-        }
+
+    /** Approves a registration from a signed link in an email. */
+    @GetMapping(path = "/approve", produces = MediaType.APPLICATION_JSON_VALUE)
+    public UserDecisionResponse approveUser(@RequestParam String token) {
+        return applyTokenDecision(token, Decision.APPROVED);
     }
-    
-    /**
-     * Manually deny user by admin
-     * POST /auth/manual-deny
-     */
-    @PostMapping("/manual-deny")
-    public ResponseEntity<Map<String, Object>> manuallyDenyUser(@RequestBody Map<String, String> request) {
-        try {
-            String userEmail = request.get("email");
-            String userName = request.get("name");
-            
-            if (userEmail == null || userEmail.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
-            }
-            
-            // Here you would typically update the user status in your database
-            logger.info("User manually denied: {}", userEmail);
-            
-            // Send denial notification to user
-            UserData user = new UserData(userEmail, userName != null ? userName : "User");
-            boolean emailSent = userApprovalEmailService.sendAccountDeniedEmail(user);
-            
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "User denied successfully",
-                "emailSent", emailSent,
-                "user", Map.of(
-                    "email", userEmail,
-                    "name", userName != null ? userName : "User",
-                    "status", "DENIED"
-                )
-            ));
-            
-        } catch (Exception e) {
-            logger.error("Error in manual denial:", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Internal server error"));
-        }
+
+    /** Declines a registration from a signed link in an email. */
+    @GetMapping(path = "/deny", produces = MediaType.APPLICATION_JSON_VALUE)
+    public UserDecisionResponse denyUser(@RequestParam String token) {
+        return applyTokenDecision(token, Decision.DENIED);
     }
-    
-    /**
-     * Send email based on template type
-     * POST /auth/send-email
-     */
-    @PostMapping("/send-email")
-    public ResponseEntity<Map<String, Object>> sendEmail(@RequestBody Map<String, Object> request) {
-        try {
-            String templateType = (String) request.get("templateType");
-            
-            if (templateType == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "templateType is required"));
-            }
-            
-            logger.info("Sending {} email", templateType);
-            
-            EmailResult result = switch (templateType.toLowerCase()) {
-                case "approval", "approved", "denied", "pending" -> 
-                    handleUserApprovalEmail(templateType, request);
-                case "consultation-confirmation", "consultation-notification" -> 
-                    handleConsultationEmail(templateType, request);
-                case "password-reset" -> 
-                    handlePasswordResetEmail(request);
-                default -> new EmailResult(false, "Invalid templateType", "", 
-                    "Valid types: approval, approved, denied, pending, consultation-confirmation, consultation-notification, password-reset");
-            };
-            
-            if (result.hasError()) {
-                return ResponseEntity.badRequest().body(Map.of("error", result.errorMessage()));
-            }
-            
-            if (result.success()) {
-                return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", result.message(),
-                    "templateType", templateType,
-                    "recipient", result.recipient()
-                ));
-            } else {
-                return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Failed to send email",
-                    "message", "Check server logs for detailed error information",
-                    "templateType", templateType
-                ));
-            }
-            
-        } catch (Exception e) {
-            logger.error("Error sending email:", e);
-            String errorMessage = e.getMessage() != null ? e.getMessage() : "Unknown error occurred";
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Internal server error", "details", errorMessage));
-        }
+
+    /** Records an approval directly, for an administrator acting outside the emailed link. */
+    @PostMapping(path = "/manual-approve",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public UserDecisionResponse manuallyApproveUser(@Valid @RequestBody ManualDecisionRequest request) {
+        return notifyDecision(request.email(), request.nameOrDefault(), Decision.APPROVED);
     }
-    
-    /**
-     * Handle user approval emails (approval, approved, denied, pending)
-     */
-    private EmailResult handleUserApprovalEmail(String templateType, Map<String, Object> request) {
-        String email = (String) request.get("email");
-        String name = (String) request.get("name");
-        
-        if (email == null || name == null) {
-            return EmailResult.error("Email and name are required");
+
+    /** Records a denial directly, for an administrator acting outside the emailed link. */
+    @PostMapping(path = "/manual-deny",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public UserDecisionResponse manuallyDenyUser(@Valid @RequestBody ManualDecisionRequest request) {
+        return notifyDecision(request.email(), request.nameOrDefault(), Decision.DENIED);
+    }
+
+    // -- internals ------------------------------------------------------------------------------
+
+    private enum Decision {
+        APPROVED, DENIED
+    }
+
+    private UserDecisionResponse applyTokenDecision(String token, Decision decision) {
+        Map<String, Object> claims = approvalTokenService.verifyApprovalTokenWithClaims(token);
+
+        if (claims == null || claims.get("email") == null) {
+            // One message for every rejection reason. Whether the token was expired, forged, or
+            // simply the wrong type is useful only to someone probing the endpoint; the
+            // distinction is recorded in the service's logs.
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired token");
         }
-        
-        String appName = (String) request.get("appName");
-        String appDisplayName = (String) request.get("appDisplayName");
-        String approvalUrl = (String) request.get("approvalUrl");
-        String denyUrl = (String) request.get("denyUrl");
-        String loginUrl = (String) request.get("loginUrl");
-        
-        UserData userData = new UserData(email, name, appName, appDisplayName, approvalUrl, denyUrl, loginUrl);
-        
-        return switch (templateType.toLowerCase()) {
-            case "approval" -> {
-                boolean sent = userApprovalEmailService.sendApprovalEmail(userData);
-                yield new EmailResult(sent, "Approval request email sent to admin", email, null);
-            }
-            case "approved" -> {
-                boolean sent = userApprovalEmailService.sendAccountApprovedEmail(userData);
-                yield new EmailResult(sent, "Account approved email sent to user", email, null);
-            }
-            case "denied" -> {
-                boolean sent = userApprovalEmailService.sendAccountDeniedEmail(userData);
-                yield new EmailResult(sent, "Account denied email sent to user", email, null);
-            }
-            case "pending" -> {
-                boolean sent = userApprovalEmailService.sendRegistrationPendingEmail(userData);
-                yield new EmailResult(sent, "Registration pending email sent to user", email, null);
-            }
-            default -> EmailResult.error("Invalid approval template type");
+
+        String email = (String) claims.get("email");
+        String name = claims.get("name") == null ? "User" : (String) claims.get("name");
+
+        return notifyDecision(email, name, decision);
+    }
+
+    /**
+     * Notifies the user of a decision.
+     *
+     * <p>There is no persistence step here, and there never was — the original code carried a
+     * {@code // Here you would typically update the user status in your database} comment at each
+     * of these points. This service sends mail; it does not own user state. Whoever calls it is
+     * responsible for recording the decision.
+     */
+    private UserDecisionResponse notifyDecision(String email, String name, Decision decision) {
+        log.info("Recording decision {} for user", decision);
+
+        TemplatedEmailRequest request = switch (decision) {
+            case APPROVED -> new TemplatedEmailRequest.AccountApproved(email, name, null, null, null);
+            case DENIED -> new TemplatedEmailRequest.AccountDenied(email, name, null, null);
         };
+
+        // A delivery failure propagates rather than being reported as a 200 with
+        // "emailSent": false, which is what the previous version did.
+        SendEmailResult result = userApprovalEmailService.send(request);
+
+        return new UserDecisionResponse(
+                decision.name(),
+                email,
+                name,
+                result.messageIds().isEmpty() ? null : result.messageIds().get(0));
     }
-    
-    /**
-     * Handle consultation emails (consultation-confirmation, consultation-notification)
-     */
-    private EmailResult handleConsultationEmail(String templateType, Map<String, Object> request) {
-        String firstName = (String) request.get("firstName");
-        String lastName = (String) request.get("lastName");
-        String email = (String) request.get("email");
-        String company = (String) request.get("company");
-        String consultationType = (String) request.get("consultationType");
-        String date = (String) request.get("date");
-        String timeSlot = (String) request.get("timeSlot");
-        String meetingLink = (String) request.get("meetingLink");
-        
-        if (firstName == null || lastName == null || email == null || 
-            company == null || consultationType == null || date == null || 
-            timeSlot == null || meetingLink == null) {
-            return EmailResult.error("firstName, lastName, email, company, consultationType, date, timeSlot, and meetingLink are required for consultation emails");
-        }
-        
-        String phone = (String) request.get("phone");
-        String notes = (String) request.get("notes");
-        
-        ConsultationData consultationData = new ConsultationData(
-            firstName, lastName, email, company, consultationType, 
-            date, timeSlot, meetingLink, phone, notes
-        );
-        
-        return switch (templateType.toLowerCase()) {
-            case "consultation-confirmation" -> {
-                boolean sent = userApprovalEmailService.sendConsultationConfirmationEmail(consultationData);
-                yield new EmailResult(sent, "Consultation confirmation email sent to user", email, null);
-            }
-            case "consultation-notification" -> {
-                boolean sent = userApprovalEmailService.sendConsultationNotificationEmail(consultationData);
-                yield new EmailResult(sent, "Consultation notification email sent to admin", "info@ambitiousconcept.com", null);
-            }
-            default -> EmailResult.error("Invalid consultation template type");
-        };
-    }
-    
-    /**
-     * Handle password reset email
-     */
-    private EmailResult handlePasswordResetEmail(Map<String, Object> request) {
-        String email = (String) request.get("email");
-        String name = (String) request.get("name");
-        String resetUrl = (String) request.get("resetUrl");
-        
-        if (email == null || resetUrl == null) {
-            return EmailResult.error("email and resetUrl are required for password reset emails");
-        }
-        
-        String appName = (String) request.get("appName");
-        String appDisplayName = (String) request.get("appDisplayName");
-        String expiryTime = (String) request.get("expiryTime");
-        
-        UserData userData = new UserData(email, name != null ? name : "User");
-        userData.setAppName(appName);
-        userData.setAppDisplayName(appDisplayName);
-        userData.setResetUrl(resetUrl);
-        userData.setExpiryTime(expiryTime != null ? expiryTime : "24 hours");
-        
-        boolean sent = userApprovalEmailService.sendPasswordResetEmail(userData);
-        return new EmailResult(sent, "Password reset email sent to user", email, null);
-    }
-    
-    /**
-     * Result record for email operations
-     */
-    private record EmailResult(boolean success, String message, String recipient, String errorMessage) {
-        static EmailResult error(String errorMessage) {
-            return new EmailResult(false, "", "", errorMessage);
-        }
-        
-        boolean hasError() {
-            return errorMessage != null && !errorMessage.isEmpty();
-        }
-    }
-    
 }

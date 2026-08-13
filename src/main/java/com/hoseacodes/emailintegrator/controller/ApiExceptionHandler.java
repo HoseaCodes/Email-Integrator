@@ -1,5 +1,7 @@
 package com.hoseacodes.emailintegrator.controller;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
 import com.hoseacodes.emailintegrator.email.EmailProviderException;
 import com.hoseacodes.emailintegrator.service.EmailSendingDisabledException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,9 +22,11 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Translates exceptions into the single {@link ApiError} contract.
@@ -104,6 +108,20 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         String errorId = newErrorId();
         // Debug only: the parser message can quote the offending payload fragment.
         log.debug("Unreadable request body [{}] for {}", errorId, path, e);
+
+        // An unrecognised discriminator is a distinct, common, and fixable mistake — not the same
+        // as malformed JSON. Saying "could not be parsed" for a valid document with one wrong
+        // enum-like value sends the caller looking for a syntax error that is not there.
+        if (e.getCause() instanceof InvalidTypeIdException invalidType) {
+            log.info("Unknown discriminator [{}] for {}", errorId, path);
+            return ResponseEntity.status(status).body(ApiError.of(
+                    status.value(),
+                    "UNKNOWN_TEMPLATE_TYPE",
+                    "Unrecognised templateType. Valid values: " + permittedTemplateTypes(invalidType),
+                    path,
+                    errorId));
+        }
+
         log.info("Malformed request body [{}] for {}", errorId, path);
 
         return ResponseEntity.status(status).body(ApiError.of(
@@ -112,6 +130,25 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
                 "Request body could not be parsed as JSON",
                 path,
                 errorId));
+    }
+
+    /**
+     * Lists the accepted discriminator values, read from the base type's {@code @JsonSubTypes}.
+     *
+     * <p>Derived rather than hardcoded so the message cannot drift out of date when a subtype is
+     * added — a hand-maintained list in an error message is one that is eventually wrong.
+     */
+    private static String permittedTemplateTypes(InvalidTypeIdException e) {
+        Class<?> baseType = e.getBaseType() == null ? null : e.getBaseType().getRawClass();
+        JsonSubTypes subTypes = baseType == null ? null : baseType.getAnnotation(JsonSubTypes.class);
+        if (subTypes == null) {
+            return "see the API documentation";
+        }
+        return Arrays.stream(subTypes.value())
+                .map(JsonSubTypes.Type::name)
+                .filter(name -> !name.isBlank())
+                .sorted()
+                .collect(Collectors.joining(", "));
     }
 
     /**

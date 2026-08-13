@@ -10,9 +10,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.mail.MailAuthenticationException;
 import org.springframework.mail.MailException;
-import org.springframework.mail.MailParseException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -126,31 +124,18 @@ public class SpringMailService {
 
             return SendEmailResult.single(messageId, PROVIDER_NAME);
 
-        } catch (MailAuthenticationException e) {
-            // Our SMTP credentials are wrong. Not the caller's problem, so this becomes a 502.
-            throw failure(Reason.PROVIDER_AUTH_FAILED, "SMTP authentication failed",
-                    e, startNanos, messageId);
-
-        } catch (MailParseException | MessagingException | UnsupportedEncodingException e) {
-            // The message could not be assembled — a malformed address that slipped past
-            // validation, or an unencodable header. Nothing was transmitted.
-            throw failure(Reason.REQUEST_REJECTED, "the message could not be composed",
-                    e, startNanos, messageId);
-
-        } catch (MailException e) {
-            // Everything else: connection failures, server rejections, partial delivery.
-            //
-            // Classified as side-effect-possible on purpose. SMTP delivery is not atomic — a
-            // failure can be raised after the server has accepted the message for some recipients,
-            // and MailSendException explicitly models per-recipient failures. Treating this as
-            // "definitely not sent" would license a retry that duplicates mail already delivered.
-            throw failure(Reason.PROVIDER_UNAVAILABLE, "the mail server could not deliver the message",
-                    e, startNanos, messageId);
+        } catch (MailException | MessagingException | UnsupportedEncodingException e) {
+            // Classification lives in SmtpFailures so this path and the templated-email path
+            // interpret the same SMTP failure identically. Notably, a generic send failure is
+            // treated as side-effect-possible: SMTP delivery is not atomic, so the server may
+            // already have accepted the message for some recipients.
+            throw failure(e, startNanos, messageId);
         }
     }
 
-    private EmailProviderException failure(Reason reason, String detail, Exception cause,
-                                           long startNanos, String messageId) {
+    private EmailProviderException failure(Exception cause, long startNanos, String messageId) {
+        Reason reason = SmtpFailures.classify(cause);
+        String detail = SmtpFailures.detailFor(reason);
         // Detail, timing, and the Message-ID are logged. The Message-ID matters most on a
         // side-effect-possible failure: it is the only handle for checking after the fact whether
         // the message actually went out.

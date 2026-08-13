@@ -52,7 +52,7 @@ Implemented and covered by tests:
 | **Output encoding** | Context-aware escaping for email templates; scheme and host allowlists for caller-supplied links |
 | **JWT** | Signed, expiring approval links with issuer and token-type validation, and a signing key that must be configured or the app refuses to start |
 | **API design** | One error contract across every endpoint, correlation ids, no stack traces or provider detail in responses |
-| **Testing** | 131 tests, including provider failure simulation against a real HTTP server (WireMock) |
+| **Testing** | 161 tests, including provider failure simulation against a real HTTP server (WireMock) |
 | **Observability** | Actuator health/info, structured SLF4J logging that never records keys, tokens, or message bodies |
 | **Docker / AWS** | Dockerfile and a scripted Elastic Beanstalk deployment that provisions secrets as environment properties |
 | **CI** | GitHub Actions runs the full suite on every pull request and push to `master`; Dependabot raises grouped upgrade PRs |
@@ -191,7 +191,7 @@ Full findings and remaining gaps: [docs/ENGINEERING_AUDIT.md](docs/ENGINEERING_A
 
 ## Testing
 
-131 tests. The emphasis is on failure paths, because the happy path is exercised by hand
+161 tests. The emphasis is on failure paths, because the happy path is exercised by hand
 constantly and the 429-at-3am path is exercised exactly once, in production, unless it is tested.
 
 | Layer | What it proves |
@@ -293,7 +293,7 @@ docker run --env-file .env -p 8082:8082 hoseacodes-emailintegrator
 ### Tests
 
 ```bash
-./mvnw clean verify          # all 131
+./mvnw clean verify          # all 161
 ./mvnw test -Dtest=BrevoEmailProviderTest   # provider failure modes
 ```
 
@@ -365,11 +365,8 @@ Honest list. These are why this is not described as production-ready.
   `deliveryUncertain` flag tells a caller when this risk applies, but nothing prevents it.
 - **No rate limiting.** An authenticated client can send until the provider's quota is exhausted.
   Do not expose this to untrusted clients.
-- **`/auth/**` still lags.** `POST /auth/send-email`, `/auth/manual-approve` and
-  `/auth/manual-deny` still take untyped `Map` request bodies with hand-rolled null checks instead
-  of Bean Validation. `POST /email` and `POST /api/spring-mail/send` show the intended pattern.
 - **`GET /auth/approve` and `/auth/deny` change state.** A mail client's link prefetcher can
-  trigger an approval. Fixing this needs single-use tokens, which needs server-side state.
+  trigger an approval. Fixing this needs single-use tokens, which needs server-side token state.
 - **Spring Boot 3.2.5 is past its OSS support window**, and no dependency scanning runs.
 - **API keys are compared against plaintext configuration values**, not hashes.
 - **The Dockerfile is not hardened** — runs as root, uses a JDK rather than a JRE base, no
