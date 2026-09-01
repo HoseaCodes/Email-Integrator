@@ -92,7 +92,7 @@ jobs:
     steps:
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
 # First-time setup: Settings → Pages → Source = "GitHub Actions". Without that this workflow
 # builds successfully and the deploy step fails, which is a confusing way to discover it.
