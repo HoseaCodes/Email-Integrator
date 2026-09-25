@@ -1,0 +1,34 @@
+apiVersion: opsatlas.ambitiousconcepts.io/v1
+kind: Service
+metadata:
+  name: email-integrator
+  displayName: Email Integrator
+  owner: hoseacodes
+  repository: HoseaCodes/Email-Integrator
+  description: >-
+    Spring Boot service that sends transactional email through the Brevo HTTP API and through
+    Gmail SMTP, with per-client API-key authentication, explicit provider timeouts, automatic
+    retries deliberately disabled, and failures classified by whether a send may already have
+    happened. Portfolio project, not production-ready.
+spec:
+  tier: 3
+  lifecycle: active
+  runtime: spring-boot
+  environments:
+    - name: production
+      url: http://email-integrator-prod.eba-p4bnt2xm.us-east-1.elasticbeanstalk.com
+    - name: local
+      url: http://localhost:8082
+  health:
+    readiness: /actuator/health
+  operations:
+    runbook: docs/OPERATIONS.md
+    contact: info@ambitiousconcept.com
+  journeys:
+    - Send a transactional email through the API
+    - Approve or deny a user access request from a link in an email
+  dependencies:
+    - name: brevo
+      kind: external
+    - name: gmail-smtp
+      kind: external
