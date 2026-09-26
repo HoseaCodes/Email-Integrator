@@ -150,6 +150,7 @@ public class EmailTemplateService {
             case "consultation-confirmation.html" -> getDefaultConsultationConfirmationTemplate();
             case "consultation-notification.html" -> getDefaultConsultationNotificationTemplate();
             case "password-reset.html" -> getDefaultPasswordResetTemplate();
+            case "email-verification.html" -> getDefaultEmailVerificationTemplate();
             default -> "<html><body><h1>Email Template Error</h1><p>The requested template is "
                     + "unavailable.</p></body></html>";
         };
@@ -237,6 +238,19 @@ public class EmailTemplateService {
             <p><a href="{{resetUrl}}">Reset Password</a></p>
             <p>This link will expire in {{expiryTime}}.</p>
             <p>If you did not request this, please ignore this email.</p>
+            <p>Contact: {{adminEmail}}</p>
+            </body></html>
+            """;
+    }
+
+    private String getDefaultEmailVerificationTemplate() {
+        return """
+            <html><body>
+            <h1>Verify your email</h1>
+            <p>Hi {{userName}},</p>
+            <p>Your verification code is: <strong>{{code}}</strong></p>
+            <p>This code will expire in {{expiryTime}}.</p>
+            <p>If you did not create an account, please ignore this email.</p>
             <p>Contact: {{adminEmail}}</p>
             </body></html>
             """;

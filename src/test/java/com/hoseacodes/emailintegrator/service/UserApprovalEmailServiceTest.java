@@ -76,6 +76,8 @@ class UserApprovalEmailServiceTest {
                 new TemplatedEmailRequest.RegistrationPending("user@example.com", "Alex", null, null),
                 new TemplatedEmailRequest.PasswordReset("user@example.com", "Alex",
                         "https://app.example.com/reset?t=abc", null, null, null),
+                new TemplatedEmailRequest.EmailVerification("user@example.com", "Alex", "123456",
+                        null, null, null),
                 new TemplatedEmailRequest.ConsultationConfirmation("Alex", "Smith", "user@example.com",
                         "Acme", "Architecture review", "2026-09-01", "14:00",
                         "https://meet.example.com/abc", null, null),

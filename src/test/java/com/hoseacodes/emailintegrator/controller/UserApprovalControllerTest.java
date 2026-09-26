@@ -112,6 +112,43 @@ class UserApprovalControllerTest {
         }
 
         @Test
+        @DisplayName("routes email-verification to its payload type")
+        void routesEmailVerification() throws Exception {
+            givenSendSucceeds();
+
+            mockMvc.perform(post("/auth/send-email")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "templateType": "email-verification",
+                                      "email": "user@example.com",
+                                      "code": "123456"
+                                    }
+                                    """))
+                    .andExpect(status().isAccepted());
+
+            ArgumentCaptor<TemplatedEmailRequest> captor =
+                    ArgumentCaptor.forClass(TemplatedEmailRequest.class);
+            verify(userApprovalEmailService).send(captor.capture());
+            assertThat(captor.getValue()).isInstanceOf(TemplatedEmailRequest.EmailVerification.class);
+        }
+
+        @Test
+        @DisplayName("rejects an email-verification code that is not six digits")
+        void rejectsMalformedVerificationCode() throws Exception {
+            mockMvc.perform(post("/auth/send-email")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "templateType": "email-verification",
+                                      "email": "user@example.com",
+                                      "code": "<b>12</b>"
+                                    }
+                                    """))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
         @DisplayName("enforces the required fields for the selected type")
         void validatesPerTypeRequirements() throws Exception {
             // approvalUrl and denyUrl are required for "approval" but meaningless for other types.
