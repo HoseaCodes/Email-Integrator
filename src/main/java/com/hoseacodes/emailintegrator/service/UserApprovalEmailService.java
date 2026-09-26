@@ -7,6 +7,7 @@ import com.hoseacodes.emailintegrator.controller.dto.TemplatedEmailRequest.Accou
 import com.hoseacodes.emailintegrator.controller.dto.TemplatedEmailRequest.ApprovalRequest;
 import com.hoseacodes.emailintegrator.controller.dto.TemplatedEmailRequest.ConsultationConfirmation;
 import com.hoseacodes.emailintegrator.controller.dto.TemplatedEmailRequest.ConsultationNotification;
+import com.hoseacodes.emailintegrator.controller.dto.TemplatedEmailRequest.EmailVerification;
 import com.hoseacodes.emailintegrator.controller.dto.TemplatedEmailRequest.PasswordReset;
 import com.hoseacodes.emailintegrator.controller.dto.TemplatedEmailRequest.RegistrationPending;
 import com.hoseacodes.emailintegrator.email.SendEmailResult;
@@ -117,6 +118,9 @@ public class UserApprovalEmailService {
         if (request instanceof PasswordReset r) {
             return sendPasswordReset(r);
         }
+        if (request instanceof EmailVerification r) {
+            return sendEmailVerification(r);
+        }
         if (request instanceof ConsultationConfirmation r) {
             return sendConsultationConfirmation(r);
         }
@@ -211,6 +215,22 @@ public class UserApprovalEmailService {
                 Map.of("resetUrl", r.resetUrl()));
 
         return dispatch(r.email(), app + " Security", "Password Reset Request - " + app, html, null);
+    }
+
+    private SendEmailResult sendEmailVerification(EmailVerification r) {
+        String app = appNameOr(r.appName());
+
+        String html = emailTemplateService.processTemplate("email-verification.html",
+                Map.of(
+                        "userName", StringUtils.hasText(r.name()) ? r.name() : "there",
+                        "code", r.code(),
+                        "expiryTime", StringUtils.hasText(r.expiryTime()) ? r.expiryTime() : "15 minutes",
+                        "adminEmail", adminEmail == null ? "" : adminEmail,
+                        "appName", app,
+                        "appDisplayName", displayNameOr(r.appDisplayName())),
+                Map.of());
+
+        return dispatch(r.email(), app + " Security", "Your verification code - " + app, html, null);
     }
 
     private SendEmailResult sendConsultationConfirmation(ConsultationConfirmation r) {

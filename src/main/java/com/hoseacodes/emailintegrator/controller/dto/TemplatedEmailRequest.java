@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -43,6 +44,8 @@ import jakarta.validation.constraints.Size;
         @JsonSubTypes.Type(value = TemplatedEmailRequest.AccountDenied.class, name = "denied"),
         @JsonSubTypes.Type(value = TemplatedEmailRequest.RegistrationPending.class, name = "pending"),
         @JsonSubTypes.Type(value = TemplatedEmailRequest.PasswordReset.class, name = "password-reset"),
+        @JsonSubTypes.Type(value = TemplatedEmailRequest.EmailVerification.class,
+                name = "email-verification"),
         @JsonSubTypes.Type(value = TemplatedEmailRequest.ConsultationConfirmation.class,
                 name = "consultation-confirmation"),
         @JsonSubTypes.Type(value = TemplatedEmailRequest.ConsultationNotification.class,
@@ -164,6 +167,32 @@ public sealed interface TemplatedEmailRequest {
         @Override
         public String templateType() {
             return "password-reset";
+        }
+
+        @Override
+        public String recipient() {
+            return email;
+        }
+    }
+
+    /**
+     * Sends a one-time code proving the recipient owns the address.
+     *
+     * <p>A code rather than a link: the mobile app enters it directly, so it needs no deep link,
+     * and there is no caller-supplied URL to validate. {@code code} must be exactly six digits.
+     */
+    record EmailVerification(
+            @NotBlank @Email @Size(max = 254) String email,
+            @Size(max = 100) String name,
+            @NotBlank @Pattern(regexp = "\\d{6}") String code,
+            @Size(max = 100) String appName,
+            @Size(max = 150) String appDisplayName,
+            @Size(max = 50) String expiryTime)
+            implements TemplatedEmailRequest {
+
+        @Override
+        public String templateType() {
+            return "email-verification";
         }
 
         @Override
